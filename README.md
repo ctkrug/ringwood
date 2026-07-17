@@ -34,19 +34,22 @@ different tree.
 
 ## What works today
 
-- Paste-a-repo flow with inline validation and GitHub API rate-limit/404 handling.
+- Paste-a-repo flow with inline validation and a designed error banner for GitHub 404s and
+  actionable ("try again in N minutes") 403 rate-limit responses.
 - Full paginated commit history fetch, bucketed into one ring per calendar year.
 - Year-by-year ring growth animation (staggered, eased outward), thickness driven by commit
   volume, with `prefers-reduced-motion` support and clean cancellation on resubmit.
 - Language color banding per ring, sampled from each year's touched files.
 - Canvas scales to `devicePixelRatio` and redraws on resize.
+- Hover or tap a ring for a tooltip with that year's commit count and dominant language; a
+  tabbable year-chip list gives keyboard users the same stats without hovering.
+- Synth WebAudio tick per completed ring, a brighter chime on the last, and a mute toggle
+  whose state persists across reloads.
 
 ## Planned
 
-- Hover/tap a ring to see that year's stats (commits, dominant language).
 - A language legend keyed to the repo's actual mix.
 - Export the finished tree as a shareable PNG.
-- Synth SFX + mute toggle for ring growth.
 - Designed empty/small-repo states (single-year "sapling", zero-commit repo).
 
 ## Stack
