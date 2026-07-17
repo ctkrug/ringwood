@@ -2,8 +2,10 @@ import { fetchCommitHistory, GitHubApiError, parseRepoInput } from "../github/cl
 import { sampleYearLanguages } from "../github/sampleLanguages";
 import type { Animation } from "../render/animate";
 import { animateRings } from "../render/animate";
+import { renderRings } from "../render/canvas";
 import { attachLanguageBands, bucketCommitsByYear, computeRings, groupCommitsByYear } from "../rings/compute";
 import { aggregateLanguages, toBands } from "../rings/language";
+import type { Ring } from "../rings/types";
 
 const RING_COLORS: [string, string] = ["#bb5a2c", "#4f6b3a"];
 
@@ -34,9 +36,33 @@ export function mountApp(root: HTMLElement): void {
   const button = root.querySelector<HTMLButtonElement>("#grow-btn")!;
   const statusEl = root.querySelector<HTMLParagraphElement>("#status-msg")!;
   const canvas = root.querySelector<HTMLCanvasElement>("#tree-canvas")!;
+  const stage = root.querySelector<HTMLElement>(".tree-stage")!;
   const ctx = canvas.getContext("2d")!;
 
   let currentAnimation: Animation | null = null;
+  let lastRings: Ring[] | null = null;
+
+  const bgColor = () => getComputedStyle(document.documentElement).getPropertyValue("--surface-1");
+
+  /**
+   * Sizes the canvas element to its container at devicePixelRatio so the
+   * tree stays crisp on retina displays, then redraws the last finished
+   * tree at the new pixel size rather than leaving it stretched/blurry.
+   */
+  const resizeCanvas = () => {
+    const cssSize = Math.max(Math.min(stage.clientWidth, stage.clientHeight || stage.clientWidth), 1);
+    const dpr = window.devicePixelRatio || 1;
+    const devicePixels = Math.round(cssSize * dpr);
+
+    canvas.style.width = `${cssSize}px`;
+    canvas.style.height = `${cssSize}px`;
+    canvas.width = devicePixels;
+    canvas.height = devicePixels;
+
+    if (lastRings) {
+      renderRings(ctx, lastRings, canvas.width, { bgColor: bgColor(), ringColors: RING_COLORS });
+    }
+  };
 
   const setStatus = (message: string, isError = false) => {
     statusEl.textContent = message;
@@ -67,10 +93,11 @@ export function mountApp(root: HTMLElement): void {
         [...filesByYear].map(([year, files]) => [year, toBands(aggregateLanguages(files))]),
       );
       rings = attachLanguageBands(rings, bandsByYear);
+      lastRings = rings;
 
       currentAnimation?.cancel();
       currentAnimation = animateRings(ctx, rings, canvas.width, {
-        bgColor: getComputedStyle(document.documentElement).getPropertyValue("--surface-1"),
+        bgColor: bgColor(),
         ringColors: RING_COLORS,
         reducedMotion: prefersReducedMotion(),
       });
@@ -88,4 +115,6 @@ export function mountApp(root: HTMLElement): void {
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") grow();
   });
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
 }
