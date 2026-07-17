@@ -35,6 +35,7 @@ export function mountApp(root: HTMLElement): void {
             <span class="mute-icon" aria-hidden="true"></span>
             <span id="mute-label">Sound on</span>
           </button>
+          <button id="export-btn" type="button" disabled>Export PNG</button>
         </div>
         <p id="status-msg" role="status" aria-live="polite"></p>
         <div id="error-banner" class="error-banner" role="alert" hidden>
@@ -42,10 +43,13 @@ export function mountApp(root: HTMLElement): void {
           <p id="error-banner-msg"></p>
         </div>
         <div id="year-list" class="year-list" aria-label="Ring years" hidden></div>
+        <div id="legend-list" class="legend-list" aria-label="Language legend" hidden></div>
       </section>
       <section class="tree-stage">
         <canvas id="tree-canvas" width="600" height="600"></canvas>
+        <div id="tree-glow" class="tree-glow" aria-hidden="true"></div>
         <p class="stage-placeholder" id="stage-placeholder">Paste a repo and grow its rings</p>
+        <p id="tree-note" class="tree-note" role="status" hidden></p>
         <div id="ring-tooltip" class="ring-tooltip" role="tooltip" hidden></div>
       </section>
     </main>
