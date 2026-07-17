@@ -1,17 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { computeRingRadii } from "../src/render/geometry";
-import { paintBackground, renderRings, renderRingsFrame } from "../src/render/canvas";
+import { drawRingHighlight, paintBackground, renderRings, renderRingsFrame } from "../src/render/canvas";
 import type { Ring } from "../src/rings/types";
 
 interface Call {
   type: string;
   fillStyle?: string;
+  strokeStyle?: string;
+  lineWidth?: number;
 }
 
 function createFakeCtx() {
   const calls: Call[] = [];
   const ctx = {
     fillStyle: "",
+    strokeStyle: "",
+    lineWidth: 1,
+    globalAlpha: 1,
     clearRect: () => calls.push({ type: "clearRect" }),
     fillRect: () => calls.push({ type: "fillRect", fillStyle: ctx.fillStyle }),
     beginPath: () => calls.push({ type: "beginPath" }),
@@ -19,6 +24,9 @@ function createFakeCtx() {
     arc: () => calls.push({ type: "arc" }),
     closePath: () => calls.push({ type: "closePath" }),
     fill: () => calls.push({ type: "fill", fillStyle: ctx.fillStyle }),
+    stroke: () => calls.push({ type: "stroke", strokeStyle: ctx.strokeStyle, lineWidth: ctx.lineWidth }),
+    save: () => calls.push({ type: "save" }),
+    restore: () => calls.push({ type: "restore" }),
   };
   return { ctx: ctx as unknown as CanvasRenderingContext2D, calls };
 }
@@ -84,5 +92,28 @@ describe("renderRingsFrame", () => {
     const geometries = computeRingRadii([ring], 600);
     renderRingsFrame(ctx, geometries, 300, options, [1]);
     expect(calls.filter((c) => c.type === "fill")).toHaveLength(1);
+  });
+});
+
+describe("drawRingHighlight", () => {
+  it("strokes the ring's annulus with the given color", () => {
+    const { ctx, calls } = createFakeCtx();
+    const ring: Ring = { year: 2020, commitCount: 1, thickness: 1, bands: [] };
+    const [geometry] = computeRingRadii([ring], 600);
+    drawRingHighlight(ctx, geometry, 300, "#bb5a2c");
+
+    const strokeCalls = calls.filter((c) => c.type === "stroke");
+    expect(strokeCalls).toHaveLength(1);
+    expect(strokeCalls[0].strokeStyle).toBe("#bb5a2c");
+  });
+
+  it("saves and restores context state so the highlight doesn't leak", () => {
+    const { ctx, calls } = createFakeCtx();
+    const ring: Ring = { year: 2020, commitCount: 1, thickness: 1, bands: [] };
+    const [geometry] = computeRingRadii([ring], 600);
+    drawRingHighlight(ctx, geometry, 300, "#bb5a2c");
+
+    expect(calls[0].type).toBe("save");
+    expect(calls[calls.length - 1].type).toBe("restore");
   });
 });

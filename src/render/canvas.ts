@@ -86,3 +86,27 @@ export function renderRings(ctx: CanvasRenderingContext2D, rings: Ring[], size: 
   const geometries = computeRingRadii(rings, size);
   renderRingsFrame(ctx, geometries, size / 2, options, geometries.map(() => 1));
 }
+
+/**
+ * Strokes a bright outline around a single ring's annulus, on top of an
+ * already-painted tree, so hovering/focusing a ring (mouse, tap, or the
+ * keyboard-accessible year list) has a visible on-canvas response.
+ */
+export function drawRingHighlight(
+  ctx: CanvasRenderingContext2D,
+  geometry: RingGeometry,
+  center: number,
+  color: string,
+): void {
+  const midRadius = (geometry.innerRadius + geometry.outerRadius) / 2;
+  const lineWidth = Math.max(geometry.outerRadius - geometry.innerRadius, 1);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(center, center, midRadius, 0, TAU);
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.35;
+  ctx.stroke();
+  ctx.restore();
+}
