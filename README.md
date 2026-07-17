@@ -32,15 +32,22 @@ different tree.
 5. The whole tree renders on a `<canvas>`, one ring growing outward at a time, ending in a
    single shareable image.
 
-## Planned features
+## What works today
 
-- Paste-a-repo flow with inline validation and GitHub API rate-limit handling.
-- Year-by-year ring growth animation, thickness driven by commit volume.
-- Language color banding per ring, with a legend keyed to the repo's actual language mix.
-- Hover/tap a ring to see that year's stats (commits, top languages, notable months).
-- Export the finished tree as a shareable PNG, sized for social posting.
-- Graceful handling of small repos (few rings), huge repos (`torvalds/linux`-scale history),
-  and GitHub API rate limits for anonymous requests.
+- Paste-a-repo flow with inline validation and GitHub API rate-limit/404 handling.
+- Full paginated commit history fetch, bucketed into one ring per calendar year.
+- Year-by-year ring growth animation (staggered, eased outward), thickness driven by commit
+  volume, with `prefers-reduced-motion` support and clean cancellation on resubmit.
+- Language color banding per ring, sampled from each year's touched files.
+- Canvas scales to `devicePixelRatio` and redraws on resize.
+
+## Planned
+
+- Hover/tap a ring to see that year's stats (commits, dominant language).
+- A language legend keyed to the repo's actual mix.
+- Export the finished tree as a shareable PNG.
+- Synth SFX + mute toggle for ring growth.
+- Designed empty/small-repo states (single-year "sapling", zero-commit repo).
 
 ## Stack
 
@@ -50,7 +57,9 @@ the browser.
 
 ## Status
 
-Early scaffold. See [`docs/VISION.md`](docs/VISION.md) for the full design rationale and
+Core ring rendering is in place: paste a repo, watch it grow. See
+[`docs/VISION.md`](docs/VISION.md) for the full design rationale,
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the pieces fit together, and
 [`docs/BACKLOG.md`](docs/BACKLOG.md) for the build plan.
 
 ## Development
