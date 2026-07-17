@@ -1,0 +1,20 @@
+{
+  "name": "ringwood",
+  "version": "0.1.0",
+  "description": "Render a GitHub repo's commit history as a tree's growth rings.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.6",
+    "vitest": "^2.1.1"
+  }
+}
