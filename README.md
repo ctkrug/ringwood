@@ -45,12 +45,12 @@ different tree.
   tabbable year-chip list gives keyboard users the same stats without hovering.
 - Synth WebAudio tick per completed ring, a brighter chime on the last, and a mute toggle
   whose state persists across reloads.
-
-## Planned
-
-- A language legend keyed to the repo's actual mix.
-- Export the finished tree as a shareable PNG.
-- Designed empty/small-repo states (single-year "sapling", zero-commit repo).
+- A language legend keyed to the repo's actual mix, ranked by share and reset on every new grow.
+- Export the finished tree as a PNG at canvas resolution, named after the repo
+  (e.g. `torvalds-linux-ringwood.png`); the button enables only once the tree finishes growing.
+- Designed empty/small-repo states: a zero-commit repo shows a "no commits yet" message instead
+  of a blank canvas, and a single-year repo keeps its one ring but adds a "still a sapling" note.
+- A warm glow pulses across the finished tree when its final ring completes growing.
 
 ## Stack
 
@@ -60,7 +60,8 @@ the browser.
 
 ## Status
 
-Core ring rendering is in place: paste a repo, watch it grow. See
+All core stories are built: paste a repo, watch it grow, inspect any ring, export the
+result as a PNG. See
 [`docs/VISION.md`](docs/VISION.md) for the full design rationale,
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the pieces fit together, and
 [`docs/BACKLOG.md`](docs/BACKLOG.md) for the build plan.
