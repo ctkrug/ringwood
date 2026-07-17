@@ -27,11 +27,34 @@ export function totalAnimationDuration(ringCount: number, ringDurationMs: number
   return ringCount * ringDurationMs;
 }
 
+/**
+ * Diffs a frame's progress against which rings were already marked complete,
+ * marking any newly-finished ring in place and returning its indices in
+ * order. Pulled out of the rAF loop so the "which ring just finished"
+ * bookkeeping is testable without a real animation frame.
+ */
+export function ringsJustCompleted(progress: number[], completed: boolean[]): number[] {
+  const justCompleted: number[] = [];
+  progress.forEach((value, index) => {
+    if (value >= 1 && !completed[index]) {
+      completed[index] = true;
+      justCompleted.push(index);
+    }
+  });
+  return justCompleted;
+}
+
 export interface AnimateOptions extends RenderOptions {
   /** Per-ring growth duration in ms; docs/DESIGN.md calls for 500-800ms. */
   ringDurationMs?: number;
   /** Skips the tween and renders the finished tree immediately. */
   reducedMotion?: boolean;
+  /**
+   * Fired the instant a ring's growth reaches full progress, once per ring,
+   * so a caller can play a completion tick/chime in step with the visual.
+   * `isLast` is true for the final ring, for a distinct final-ring sound.
+   */
+  onRingComplete?: (index: number, isLast: boolean) => void;
 }
 
 export interface Animation {
@@ -75,6 +98,7 @@ export function animateRings(
   let rafId = 0;
   const start = performance.now();
   const total = totalAnimationDuration(rings.length, ringDurationMs);
+  const completed = new Array<boolean>(rings.length).fill(false);
 
   const done = new Promise<void>((resolve) => {
     const frame = (now: number) => {
@@ -84,6 +108,10 @@ export function animateRings(
 
       paintBackground(ctx, size, options.bgColor);
       renderRingsFrame(ctx, geometries, center, options, progress);
+
+      for (const index of ringsJustCompleted(progress, completed)) {
+        options.onRingComplete?.(index, index === rings.length - 1);
+      }
 
       if (elapsed >= total) {
         resolve();
