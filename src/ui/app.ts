@@ -16,7 +16,9 @@ function prefersReducedMotion(): boolean {
 export function mountApp(root: HTMLElement): void {
   root.innerHTML = `
     <header class="site-header">
-      <h1 class="wordmark">Ringwood</h1>
+      <h1 class="wordmark" aria-label="Ringwood">
+        <span aria-hidden="true">Ringw<span class="ring-o"></span><span class="ring-o"></span>d</span>
+      </h1>
       <p class="tagline">Paste a public repo. Watch its history grow rings.</p>
     </header>
     <main class="layout">
@@ -28,6 +30,7 @@ export function mountApp(root: HTMLElement): void {
       </section>
       <section class="tree-stage">
         <canvas id="tree-canvas" width="600" height="600"></canvas>
+        <p class="stage-placeholder" id="stage-placeholder">Paste a repo and grow its rings</p>
       </section>
     </main>
   `;
@@ -37,6 +40,7 @@ export function mountApp(root: HTMLElement): void {
   const statusEl = root.querySelector<HTMLParagraphElement>("#status-msg")!;
   const canvas = root.querySelector<HTMLCanvasElement>("#tree-canvas")!;
   const stage = root.querySelector<HTMLElement>(".tree-stage")!;
+  const placeholder = root.querySelector<HTMLElement>("#stage-placeholder")!;
   const ctx = canvas.getContext("2d")!;
 
   let currentAnimation: Animation | null = null;
@@ -94,6 +98,7 @@ export function mountApp(root: HTMLElement): void {
       );
       rings = attachLanguageBands(rings, bandsByYear);
       lastRings = rings;
+      placeholder.hidden = true;
 
       currentAnimation?.cancel();
       currentAnimation = animateRings(ctx, rings, canvas.width, {
@@ -106,6 +111,7 @@ export function mountApp(root: HTMLElement): void {
     } catch (err) {
       const message = err instanceof GitHubApiError ? err.message : "Something went wrong fetching that repo";
       setStatus(message, true);
+      if (!lastRings) placeholder.hidden = false;
     } finally {
       button.disabled = false;
     }
