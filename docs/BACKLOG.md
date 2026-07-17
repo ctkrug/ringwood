@@ -42,21 +42,21 @@ later run should be able to check each one true/false, not just "looks right."
 
 ## Epic 2 — Interaction and resilience
 
-- [ ] **2.1 Hover/tap a ring for year stats**
+- [x] **2.1 Hover/tap a ring for year stats**
   - Hovering (desktop) or tapping (touch) a ring shows a tooltip with that year, commit
     count, and dominant language.
   - Tooltip dismisses on mouse-out / tap-elsewhere and never traps keyboard focus.
   - Keyboard users can reach the same per-year stats via a focusable, tabbable control (not
     hover-only).
 
-- [ ] **2.2 Designed error and rate-limit states**
+- [x] **2.2 Designed error and rate-limit states**
   - An invalid input (e.g. `"not a repo"`) shows an inline, designed error message — no raw
     `fetch` rejection text on screen.
   - A GitHub 404 (repo doesn't exist) and a 403 (rate limit) render visibly different
     messages, each actionable ("try again in N minutes" for rate limit).
   - Error state uses `--danger` token styling and doesn't collapse the layout around it.
 
-- [ ] **2.3 Synth SFX and mute toggle**
+- [x] **2.3 Synth SFX and mute toggle**
   - Each completed ring plays a short WebAudio-synthesized tick per `docs/DESIGN.md`; the
     final ring plays a distinct, brighter chime.
   - A mute button toggles sound and its state persists across a page reload via
@@ -64,12 +64,12 @@ later run should be able to check each one true/false, not just "looks right."
   - No `AudioContext` is created until the first user gesture (grow click), and the app
     doesn't throw in an environment without `AudioContext` (e.g. the test runner).
 
-- [ ] **2.4 Responsive at 390 / 768 / 1440**
+- [x] **2.4 Responsive at 390 / 768 / 1440**
   - No horizontal scroll and no overlapping elements at any of the three widths.
   - Touch targets (button, mute toggle, ring focus targets) are ≥44px at phone width.
   - Layout re-composes (not just shrinks) between phone and desktop per `docs/DESIGN.md`.
 
-- [ ] **2.5 Design polish — interaction states**
+- [x] **2.5 Design polish — interaction states**
   - Every control (input, buttons, mute toggle) has themed hover, focus-visible, active, and
     disabled states — none render as an unstyled native element.
   - Tab order reaches every interactive element in a sane sequence; focus rings are visible
