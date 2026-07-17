@@ -74,6 +74,7 @@ export function mountApp(root: HTMLElement): void {
   const tooltip = root.querySelector<HTMLElement>("#ring-tooltip")!;
   const exportBtn = root.querySelector<HTMLButtonElement>("#export-btn")!;
   const treeNote = root.querySelector<HTMLElement>("#tree-note")!;
+  const treeGlow = root.querySelector<HTMLElement>("#tree-glow")!;
   const ctx = canvas.getContext("2d")!;
 
   let currentAnimation: Animation | null = null;
@@ -242,6 +243,13 @@ export function mountApp(root: HTMLElement): void {
     treeNote.hidden = true;
   };
 
+  /** Restarts the warm glow pulse across the whole tree; toggling the class forces the CSS animation to replay. */
+  const pulseGlow = () => {
+    treeGlow.classList.remove("pulse");
+    void treeGlow.offsetWidth;
+    treeGlow.classList.add("pulse");
+  };
+
   /**
    * Sizes the canvas element to its container at devicePixelRatio so the
    * tree stays crisp on retina displays, then redraws the last finished
@@ -319,7 +327,14 @@ export function mountApp(root: HTMLElement): void {
         bgColor: bgColor(),
         ringColors: RING_COLORS,
         reducedMotion: prefersReducedMotion(),
-        onRingComplete: (_index, isLast) => (isLast ? sfx.chime() : sfx.tick()),
+        onRingComplete: (_index, isLast) => {
+          if (isLast) {
+            sfx.chime();
+            pulseGlow();
+          } else {
+            sfx.tick();
+          }
+        },
       });
       if (rings.length > 0) currentAnimation.done.then(enableExport);
 
