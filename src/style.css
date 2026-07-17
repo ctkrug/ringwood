@@ -287,6 +287,44 @@ h2 {
   color: var(--text-muted);
 }
 
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 12px var(--space-2);
+  border-radius: var(--radius);
+  background: rgba(161, 58, 43, 0.12);
+  border-left: 3px solid var(--danger);
+  color: var(--danger);
+}
+
+.error-banner[hidden] {
+  display: none;
+}
+
+.error-banner-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: var(--bg);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.error-banner p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ring-o {
     animation: none;

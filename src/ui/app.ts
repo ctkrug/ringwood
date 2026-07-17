@@ -27,6 +27,10 @@ export function mountApp(root: HTMLElement): void {
         <input id="repo-input" placeholder="torvalds/linux" autocomplete="off" />
         <button id="grow-btn" type="button">Grow the tree</button>
         <p id="status-msg" role="status" aria-live="polite"></p>
+        <div id="error-banner" class="error-banner" role="alert" hidden>
+          <span class="error-banner-icon" aria-hidden="true">!</span>
+          <p id="error-banner-msg"></p>
+        </div>
       </section>
       <section class="tree-stage">
         <canvas id="tree-canvas" width="600" height="600"></canvas>
@@ -38,6 +42,8 @@ export function mountApp(root: HTMLElement): void {
   const input = root.querySelector<HTMLInputElement>("#repo-input")!;
   const button = root.querySelector<HTMLButtonElement>("#grow-btn")!;
   const statusEl = root.querySelector<HTMLParagraphElement>("#status-msg")!;
+  const errorBanner = root.querySelector<HTMLElement>("#error-banner")!;
+  const errorBannerMsg = root.querySelector<HTMLElement>("#error-banner-msg")!;
   const canvas = root.querySelector<HTMLCanvasElement>("#tree-canvas")!;
   const stage = root.querySelector<HTMLElement>(".tree-stage")!;
   const placeholder = root.querySelector<HTMLElement>("#stage-placeholder")!;
@@ -68,18 +74,28 @@ export function mountApp(root: HTMLElement): void {
     }
   };
 
-  const setStatus = (message: string, isError = false) => {
+  const setStatus = (message: string) => {
     statusEl.textContent = message;
-    statusEl.style.color = isError ? "var(--danger)" : "var(--text-muted)";
+  };
+
+  const showError = (message: string) => {
+    errorBannerMsg.textContent = message;
+    errorBanner.hidden = false;
+  };
+
+  const clearError = () => {
+    errorBanner.hidden = true;
+    errorBannerMsg.textContent = "";
   };
 
   const grow = async () => {
     const ref = parseRepoInput(input.value);
     if (!ref) {
-      setStatus("Enter a repo as owner/repo or a github.com URL", true);
+      showError("Enter a repo as owner/repo or a github.com URL");
       return;
     }
 
+    clearError();
     button.disabled = true;
     setStatus(`Fetching ${ref.owner}/${ref.repo}…`);
 
@@ -110,7 +126,8 @@ export function mountApp(root: HTMLElement): void {
       setStatus(`${rings.length} ring${rings.length === 1 ? "" : "s"} grown from ${commits.length} commits`);
     } catch (err) {
       const message = err instanceof GitHubApiError ? err.message : "Something went wrong fetching that repo";
-      setStatus(message, true);
+      setStatus("");
+      showError(message);
       if (!lastRings) placeholder.hidden = false;
     } finally {
       button.disabled = false;
