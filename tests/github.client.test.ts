@@ -62,6 +62,27 @@ describe("fetchCommitHistory", () => {
     await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(GitHubApiError);
   });
 
+  it("includes a minutes-until-reset clause when the reset header is present", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-17T12:00:00Z"));
+    const resetEpochSeconds = Math.floor(new Date("2026-07-17T12:05:00Z").getTime() / 1000);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        headers: { get: (name: string) => (name === "x-ratelimit-reset" ? String(resetEpochSeconds) : null) },
+      }),
+    );
+    await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(/try again in 5 minutes/);
+    vi.useRealTimers();
+  });
+
+  it("falls back to a vague message when the reset header is missing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403, headers: { get: () => null } }));
+    await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(/try again shortly/);
+  });
+
   it("throws a GitHubApiError with a not-found message on 404", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
     await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(/not found/);
