@@ -1,0 +1,48 @@
+:root {
+  --bg: #f2e6c9;
+  --surface-1: #e8d8ac;
+  --surface-2: #d4bd86;
+  --text: #2b2013;
+  --text-muted: #6e5b3e;
+  --accent: #bb5a2c;
+  --accent-support: #4f6b3a;
+  --success: #4f7a3a;
+  --danger: #a13a2b;
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-ui: "Work Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+
+  --radius: 12px;
+  --radius-pill: 999px;
+  --shadow: 0 4px 16px rgba(43, 32, 19, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  margin: 0;
+}
