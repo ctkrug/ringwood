@@ -3,6 +3,7 @@ import {
   aggregateLanguages,
   colorForLanguage,
   detectLanguage,
+  dominantLanguage,
   toBands,
 } from "../src/rings/language";
 
@@ -76,5 +77,23 @@ describe("toBands", () => {
     expect(bands[0].share).toBeCloseTo(0.75);
     expect(bands[1].share).toBeCloseTo(0.25);
     expect(bands.reduce((sum, b) => sum + b.share, 0)).toBeCloseTo(1);
+  });
+});
+
+describe("dominantLanguage", () => {
+  it("picks the largest-share band", () => {
+    const bands = toBands([
+      { language: "TypeScript", count: 3 },
+      { language: "Python", count: 1 },
+    ]);
+    expect(dominantLanguage(bands)).toBe("TypeScript");
+  });
+
+  it("returns the single language for a solid band", () => {
+    expect(dominantLanguage(toBands([{ language: "Go", count: 5 }]))).toBe("Go");
+  });
+
+  it("returns null for an empty band list", () => {
+    expect(dominantLanguage([])).toBeNull();
   });
 });
