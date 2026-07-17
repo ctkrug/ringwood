@@ -1,8 +1,15 @@
 import { fetchCommitHistory, GitHubApiError, parseRepoInput } from "../github/client";
-import { renderRings } from "../render/canvas";
-import { bucketCommitsByYear, computeRings } from "../rings/compute";
+import { sampleYearLanguages } from "../github/sampleLanguages";
+import type { Animation } from "../render/animate";
+import { animateRings } from "../render/animate";
+import { attachLanguageBands, bucketCommitsByYear, computeRings, groupCommitsByYear } from "../rings/compute";
+import { aggregateLanguages, toBands } from "../rings/language";
 
 const RING_COLORS: [string, string] = ["#bb5a2c", "#4f6b3a"];
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
 
 export function mountApp(root: HTMLElement): void {
   root.innerHTML = `
@@ -29,6 +36,8 @@ export function mountApp(root: HTMLElement): void {
   const canvas = root.querySelector<HTMLCanvasElement>("#tree-canvas")!;
   const ctx = canvas.getContext("2d")!;
 
+  let currentAnimation: Animation | null = null;
+
   const setStatus = (message: string, isError = false) => {
     statusEl.textContent = message;
     statusEl.style.color = isError ? "var(--danger)" : "var(--text-muted)";
@@ -49,11 +58,23 @@ export function mountApp(root: HTMLElement): void {
         setStatus(`Fetching ${ref.owner}/${ref.repo}… page ${page}`);
       });
       const activity = bucketCommitsByYear(commits.map((c) => c.date));
-      const rings = computeRings(activity);
-      renderRings(ctx, rings, canvas.width, {
+      let rings = computeRings(activity);
+
+      setStatus(`Sampling languages across ${rings.length} year${rings.length === 1 ? "" : "s"}…`);
+      const commitsByYear = groupCommitsByYear(commits);
+      const filesByYear = await sampleYearLanguages(ref, commitsByYear);
+      const bandsByYear = new Map(
+        [...filesByYear].map(([year, files]) => [year, toBands(aggregateLanguages(files))]),
+      );
+      rings = attachLanguageBands(rings, bandsByYear);
+
+      currentAnimation?.cancel();
+      currentAnimation = animateRings(ctx, rings, canvas.width, {
         bgColor: getComputedStyle(document.documentElement).getPropertyValue("--surface-1"),
         ringColors: RING_COLORS,
+        reducedMotion: prefersReducedMotion(),
       });
+
       setStatus(`${rings.length} ring${rings.length === 1 ? "" : "s"} grown from ${commits.length} commits`);
     } catch (err) {
       const message = err instanceof GitHubApiError ? err.message : "Something went wrong fetching that repo";
