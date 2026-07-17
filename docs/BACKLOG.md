@@ -77,26 +77,26 @@ later run should be able to check each one true/false, not just "looks right."
 
 ## Epic 3 — Export and finishing
 
-- [ ] **3.1 Export the tree as a PNG**
+- [x] **3.1 Export the tree as a PNG**
   - An "Export" button is disabled until a tree has finished growing, then enables with a
     small scale-in per the juice plan.
   - Clicking Export downloads a PNG containing the rendered tree at canvas resolution (not a
     screenshot of the whole page).
   - Exported PNG filename includes the repo name (e.g. `torvalds-linux-ringwood.png`).
 
-- [ ] **3.2 Language legend keyed to the real repo mix**
+- [x] **3.2 Language legend keyed to the real repo mix**
   - The legend lists only languages actually present in the fetched repo's history, each
     swatched with its band color from the tree — no placeholder/static legend entries.
   - Legend updates when a new repo is grown; it doesn't carry over the previous repo's
     languages.
 
-- [ ] **3.3 Graceful small/empty-repo handling**
+- [x] **3.3 Graceful small/empty-repo handling**
   - A repo with a single year of history still renders one full ring plus a designed
     "still a sapling" empty-ish state, not a bare canvas.
   - A repo with zero commits (freshly created, empty) shows a designed message instead of
     a blank canvas or thrown error.
 
-- [ ] **3.4 Design polish — signature detail and finishing glow**
+- [x] **3.4 Design polish — signature detail and finishing glow**
   - The animated ring wordmark (the two "o"s in Ringwood) plays its growth pulse once on
     page load per `docs/DESIGN.md`.
   - The finished tree pulses with a brief warm glow on its final ring completing, per the
