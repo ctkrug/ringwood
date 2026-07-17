@@ -1,3 +1,4 @@
+import { createSfxPlayer } from "../audio/sfx";
 import { fetchCommitHistory, GitHubApiError, parseRepoInput } from "../github/client";
 import { sampleYearLanguages } from "../github/sampleLanguages";
 import type { Animation } from "../render/animate";
@@ -25,7 +26,13 @@ export function mountApp(root: HTMLElement): void {
       <section class="controls">
         <label for="repo-input">GitHub repo</label>
         <input id="repo-input" placeholder="torvalds/linux" autocomplete="off" />
-        <button id="grow-btn" type="button">Grow the tree</button>
+        <div class="controls-row">
+          <button id="grow-btn" type="button">Grow the tree</button>
+          <button id="mute-btn" type="button" aria-pressed="false">
+            <span class="mute-icon" aria-hidden="true"></span>
+            <span id="mute-label">Sound on</span>
+          </button>
+        </div>
         <p id="status-msg" role="status" aria-live="polite"></p>
         <div id="error-banner" class="error-banner" role="alert" hidden>
           <span class="error-banner-icon" aria-hidden="true">!</span>
@@ -41,6 +48,8 @@ export function mountApp(root: HTMLElement): void {
 
   const input = root.querySelector<HTMLInputElement>("#repo-input")!;
   const button = root.querySelector<HTMLButtonElement>("#grow-btn")!;
+  const muteButton = root.querySelector<HTMLButtonElement>("#mute-btn")!;
+  const muteLabel = root.querySelector<HTMLElement>("#mute-label")!;
   const statusEl = root.querySelector<HTMLParagraphElement>("#status-msg")!;
   const errorBanner = root.querySelector<HTMLElement>("#error-banner")!;
   const errorBannerMsg = root.querySelector<HTMLElement>("#error-banner-msg")!;
@@ -51,8 +60,21 @@ export function mountApp(root: HTMLElement): void {
 
   let currentAnimation: Animation | null = null;
   let lastRings: Ring[] | null = null;
+  const sfx = createSfxPlayer();
 
   const bgColor = () => getComputedStyle(document.documentElement).getPropertyValue("--surface-1");
+
+  const syncMuteControl = () => {
+    const muted = sfx.isMuted();
+    muteButton.setAttribute("aria-pressed", String(muted));
+    muteLabel.textContent = muted ? "Sound off" : "Sound on";
+  };
+  syncMuteControl();
+
+  muteButton.addEventListener("click", () => {
+    sfx.toggleMute();
+    syncMuteControl();
+  });
 
   /**
    * Sizes the canvas element to its container at devicePixelRatio so the
@@ -121,6 +143,7 @@ export function mountApp(root: HTMLElement): void {
         bgColor: bgColor(),
         ringColors: RING_COLORS,
         reducedMotion: prefersReducedMotion(),
+        onRingComplete: (_index, isLast) => (isLast ? sfx.chime() : sfx.tick()),
       });
 
       setStatus(`${rings.length} ring${rings.length === 1 ? "" : "s"} grown from ${commits.length} commits`);
