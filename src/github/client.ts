@@ -91,3 +91,21 @@ export async function fetchCommitHistory(
 
   return commits;
 }
+
+/**
+ * Fetches the file paths touched by a single commit, for language sampling.
+ * This is a best-effort enhancement (color bands), not the core ring render,
+ * so any non-OK response degrades to an empty file list rather than throwing
+ * and breaking the tree that already rendered from fetchCommitHistory.
+ */
+export async function fetchCommitFiles(ref: RepoRef, sha: string): Promise<string[]> {
+  const url = `${API_ROOT}/repos/${ref.owner}/${ref.repo}/commits/${sha}`;
+  const res = await fetch(url, {
+    headers: { Accept: "application/vnd.github+json" },
+  });
+
+  if (!res.ok) return [];
+
+  const data = (await res.json()) as { files?: Array<{ filename: string }> };
+  return (data.files ?? []).map((f) => f.filename);
+}
