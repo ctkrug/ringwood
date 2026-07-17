@@ -28,14 +28,20 @@ repo input (owner/repo or URL)
   → render/hitTest.findRingAtPoint       pointer/keyboard position → ring geometry
   → ui/ringStats.formatRingSummary       ring → "year · commits · language" tooltip text
   → render/canvas.drawRingHighlight      strokes the hovered/focused ring's outline
+
+  → ui/treeState.describeTreeState       ring count → empty/sapling/grown state + message
+  → rings/legend.buildLegend             rings → deduped, share-ranked legend entries
+  → export/filename.formatExportFilename repo ref → "owner-repo-ringwood.png"
 ```
 
 `ui/app.ts` (`mountApp`) wires the above into the DOM: it owns the input/button/canvas
 elements, drives the fetch → sample → animate sequence on submit, cancels any in-flight
 animation before starting a new one, and resizes the canvas to the container at
 `devicePixelRatio` on load and on window resize. It also owns the hover/tap/keyboard ring
-tooltip, the tabbable per-year chip list, the mute toggle wired to `audio/sfx.ts`, and the
-designed error banner shown on invalid input or a failed fetch.
+tooltip, the tabbable per-year chip list, the language legend, the mute toggle wired to
+`audio/sfx.ts`, the export-PNG button, the designed empty/sapling tree-note, the warm glow
+pulse on the final ring, and the designed error banner shown on invalid input or a failed
+fetch.
 
 ## Modules
 
@@ -75,9 +81,21 @@ designed error banner shown on invalid input or a failed fetch.
 - **`ui/ringStats.ts`** — `formatRingSummary`: one ring → its "year · commits · language" line,
   shared verbatim by the floating tooltip and each year-chip's `aria-label` so mouse, touch, and
   keyboard users read identical text.
+- **`ui/treeState.ts`** — `describeTreeState`: classifies a finished fetch's ring count into
+  `"empty"` (zero commits), `"sapling"` (exactly one ring), or `"grown"`, each with its designed
+  message, so `app.ts` never has to inline that branching or leave a bare/blank canvas for a
+  small repo.
+- **`rings/legend.ts`** — `buildLegend`: aggregates every ring's language bands into a deduped
+  list ranked by total share across the whole tree (ties broken alphabetically), so the legend
+  reflects the current repo's real mix rather than a static or stale list.
+- **`export/filename.ts`** — `formatExportFilename`: slugifies an owner/repo pair into the
+  downloaded PNG's filename (e.g. `torvalds-linux-ringwood.png`).
 - **`ui/app.ts`** — DOM wiring: form submit flow, status messaging and the designed error
   banner, canvas DPR sizing/resize, hover/tap/keyboard ring tooltips with on-canvas highlight,
-  the mute toggle, and the idle-state placeholder shown before the first successful grow.
+  the mute toggle, the language legend, the export-PNG button (enabled once `animateRings`'
+  `done` promise resolves), the empty/sapling tree-note, the warm glow pulse fired from
+  `onRingComplete`'s final ring, and the idle-state placeholder shown before the first
+  successful grow.
 
 ## Known trade-off: language sampling, not full scan
 
