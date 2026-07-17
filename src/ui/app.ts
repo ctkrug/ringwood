@@ -9,6 +9,7 @@ import { computeRingRadii, type RingGeometry } from "../render/geometry";
 import { findRingAtPoint } from "../render/hitTest";
 import { attachLanguageBands, bucketCommitsByYear, computeRings, groupCommitsByYear } from "../rings/compute";
 import { aggregateLanguages, toBands } from "../rings/language";
+import { buildLegend } from "../rings/legend";
 import type { Ring } from "../rings/types";
 import { formatRingSummary } from "./ringStats";
 
@@ -67,6 +68,7 @@ export function mountApp(root: HTMLElement): void {
   const stage = root.querySelector<HTMLElement>(".tree-stage")!;
   const placeholder = root.querySelector<HTMLElement>("#stage-placeholder")!;
   const yearList = root.querySelector<HTMLElement>("#year-list")!;
+  const legendList = root.querySelector<HTMLElement>("#legend-list")!;
   const tooltip = root.querySelector<HTMLElement>("#ring-tooltip")!;
   const exportBtn = root.querySelector<HTMLButtonElement>("#export-btn")!;
   const ctx = canvas.getContext("2d")!;
@@ -205,6 +207,29 @@ export function mountApp(root: HTMLElement): void {
     yearList.hidden = false;
   };
 
+  /** Renders the language legend keyed to the current tree's actual mix, replacing any prior repo's. */
+  const renderLegendList = (rings: Ring[]) => {
+    legendList.innerHTML = "";
+    const entries = buildLegend(rings);
+    if (entries.length === 0) {
+      legendList.hidden = true;
+      return;
+    }
+
+    for (const entry of entries) {
+      const item = document.createElement("span");
+      item.className = "legend-item";
+      const swatch = document.createElement("span");
+      swatch.className = "legend-swatch";
+      swatch.style.backgroundColor = entry.color;
+      swatch.setAttribute("aria-hidden", "true");
+      item.appendChild(swatch);
+      item.appendChild(document.createTextNode(entry.language));
+      legendList.appendChild(item);
+    }
+    legendList.hidden = false;
+  };
+
   /**
    * Sizes the canvas element to its container at devicePixelRatio so the
    * tree stays crisp on retina displays, then redraws the last finished
@@ -270,6 +295,7 @@ export function mountApp(root: HTMLElement): void {
       lastRef = ref;
       placeholder.hidden = true;
       buildYearList(rings);
+      renderLegendList(rings);
 
       currentAnimation?.cancel();
       currentAnimation = animateRings(ctx, rings, canvas.width, {
