@@ -22,13 +22,20 @@ repo input (owner/repo or URL)
 
   → render/geometry.computeRingRadii     ring thicknesses → inner/outer pixel radii
   → render/animate.animateRings          grows rings outward one at a time (rAF, eased),
+                                          firing onRingComplete per ring for SFX,
                                           or render/canvas.renderRings for an instant paint
+
+  → render/hitTest.findRingAtPoint       pointer/keyboard position → ring geometry
+  → ui/ringStats.formatRingSummary       ring → "year · commits · language" tooltip text
+  → render/canvas.drawRingHighlight      strokes the hovered/focused ring's outline
 ```
 
 `ui/app.ts` (`mountApp`) wires the above into the DOM: it owns the input/button/canvas
 elements, drives the fetch → sample → animate sequence on submit, cancels any in-flight
 animation before starting a new one, and resizes the canvas to the container at
-`devicePixelRatio` on load and on window resize.
+`devicePixelRatio` on load and on window resize. It also owns the hover/tap/keyboard ring
+tooltip, the tabbable per-year chip list, the mute toggle wired to `audio/sfx.ts`, and the
+designed error banner shown on invalid input or a failed fetch.
 
 ## Modules
 
@@ -47,15 +54,30 @@ animation before starting a new one, and resizes the canvas to the container at
   (`aggregateLanguages`, `toBands`).
 - **`render/geometry.ts`** — `computeRingRadii`: pure thickness → inner/outer radius math,
   shared by the static renderer and the animation so there's one source of truth for layout.
-- **`render/canvas.ts`** — `renderRings` (instant full paint) and `renderRingsFrame` (paints
-  every ring at a given growth progress 0..1); draws each ring's language bands as angular
-  sector wedges rather than a solid disc.
+- **`render/canvas.ts`** — `renderRings` (instant full paint), `renderRingsFrame` (paints
+  every ring at a given growth progress 0..1, drawing language bands as angular sector wedges),
+  and `drawRingHighlight` (strokes a translucent outline over one ring's annulus for hover/
+  focus feedback without repainting the whole tree).
 - **`render/animate.ts`** — `animateRings`: sequences ring growth one at a time via
   `requestAnimationFrame`, eased with a cubic ease-out; returns a `cancel()`/`done` handle so
   the UI can stop a stale animation before starting the next. Honors `reducedMotion` for an
-  instant final render.
-- **`ui/app.ts`** — DOM wiring: form submit flow, status messaging, canvas DPR sizing/resize,
-  and the idle-state placeholder shown before the first successful grow.
+  instant final render (and skips the per-ring `onRingComplete` callback in that mode, so no
+  ticks in a reduced-motion render). `ringsJustCompleted` is the pure completion-diff helper
+  the loop uses to fire that callback exactly once per ring.
+- **`render/hitTest.ts`** — `findRingAtPoint`/`findRingAtDistance`: pure radius math that maps
+  a pointer position (or a synthetic point derived from a keyboard-focused year) to the ring
+  geometry under it, shared by mouse, touch, and keyboard entry points.
+- **`audio/sfx.ts`** — `createSfxPlayer`: WebAudio-synthesized tick/chime SFX. The
+  `AudioContext` is created lazily on the first actual sound (first user gesture, per browser
+  autoplay policy) via an injectable constructor, and mute state persists through an injectable
+  storage (defaults to `localStorage`) — both are no-ops/degrade gracefully when unavailable
+  (e.g. the test runner), so nothing throws.
+- **`ui/ringStats.ts`** — `formatRingSummary`: one ring → its "year · commits · language" line,
+  shared verbatim by the floating tooltip and each year-chip's `aria-label` so mouse, touch, and
+  keyboard users read identical text.
+- **`ui/app.ts`** — DOM wiring: form submit flow, status messaging and the designed error
+  banner, canvas DPR sizing/resize, hover/tap/keyboard ring tooltips with on-canvas highlight,
+  the mute toggle, and the idle-state placeholder shown before the first successful grow.
 
 ## Known trade-off: language sampling, not full scan
 
