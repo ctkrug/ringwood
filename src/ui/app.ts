@@ -3,10 +3,13 @@ import { fetchCommitHistory, GitHubApiError, parseRepoInput } from "../github/cl
 import { sampleYearLanguages } from "../github/sampleLanguages";
 import type { Animation } from "../render/animate";
 import { animateRings } from "../render/animate";
-import { renderRings } from "../render/canvas";
+import { drawRingHighlight, renderRings } from "../render/canvas";
+import { computeRingRadii, type RingGeometry } from "../render/geometry";
+import { findRingAtPoint } from "../render/hitTest";
 import { attachLanguageBands, bucketCommitsByYear, computeRings, groupCommitsByYear } from "../rings/compute";
 import { aggregateLanguages, toBands } from "../rings/language";
 import type { Ring } from "../rings/types";
+import { formatRingSummary } from "./ringStats";
 
 const RING_COLORS: [string, string] = ["#bb5a2c", "#4f6b3a"];
 
@@ -38,10 +41,12 @@ export function mountApp(root: HTMLElement): void {
           <span class="error-banner-icon" aria-hidden="true">!</span>
           <p id="error-banner-msg"></p>
         </div>
+        <div id="year-list" class="year-list" aria-label="Ring years" hidden></div>
       </section>
       <section class="tree-stage">
         <canvas id="tree-canvas" width="600" height="600"></canvas>
         <p class="stage-placeholder" id="stage-placeholder">Paste a repo and grow its rings</p>
+        <div id="ring-tooltip" class="ring-tooltip" role="tooltip" hidden></div>
       </section>
     </main>
   `;
@@ -56,6 +61,8 @@ export function mountApp(root: HTMLElement): void {
   const canvas = root.querySelector<HTMLCanvasElement>("#tree-canvas")!;
   const stage = root.querySelector<HTMLElement>(".tree-stage")!;
   const placeholder = root.querySelector<HTMLElement>("#stage-placeholder")!;
+  const yearList = root.querySelector<HTMLElement>("#year-list")!;
+  const tooltip = root.querySelector<HTMLElement>("#ring-tooltip")!;
   const ctx = canvas.getContext("2d")!;
 
   let currentAnimation: Animation | null = null;
@@ -75,6 +82,99 @@ export function mountApp(root: HTMLElement): void {
     sfx.toggleMute();
     syncMuteControl();
   });
+
+  const accentColor = () => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+
+  /** Repaints the last finished tree with no highlight, e.g. before drawing a fresh one. */
+  const redrawBase = () => {
+    if (lastRings) {
+      renderRings(ctx, lastRings, canvas.width, { bgColor: bgColor(), ringColors: RING_COLORS });
+    }
+  };
+
+  /**
+   * Highlights a ring on the canvas and shows its stats in the tooltip,
+   * anchored to that ring's top edge so hover, tap, and keyboard focus on
+   * the year-list all land the tooltip in the same predictable spot.
+   */
+  const showRingInfo = (geometry: RingGeometry) => {
+    redrawBase();
+    drawRingHighlight(ctx, geometry, canvas.width / 2, accentColor());
+
+    const dpr = window.devicePixelRatio || 1;
+    const midRadiusCss = (geometry.innerRadius + geometry.outerRadius) / 2 / dpr;
+    const cssCenter = canvas.clientWidth / 2;
+    tooltip.textContent = formatRingSummary(geometry.ring);
+    tooltip.style.left = `${cssCenter}px`;
+    tooltip.style.top = `${Math.max(cssCenter - midRadiusCss, 8)}px`;
+    tooltip.hidden = false;
+  };
+
+  const hideRingInfo = () => {
+    tooltip.hidden = true;
+    redrawBase();
+  };
+
+  /** Converts a pointer client position into the ring geometry under it, or null off-tree. */
+  const geometryAtPointer = (clientX: number, clientY: number): RingGeometry | null => {
+    if (!lastRings || lastRings.length === 0) return null;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0) return null;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+    const geometries = computeRingRadii(lastRings, canvas.width);
+    return findRingAtPoint(geometries, x, y, canvas.width / 2);
+  };
+
+  canvas.addEventListener("pointermove", (e) => {
+    const geometry = geometryAtPointer(e.clientX, e.clientY);
+    if (geometry) showRingInfo(geometry);
+    else hideRingInfo();
+  });
+  canvas.addEventListener("pointerleave", hideRingInfo);
+  canvas.addEventListener("click", (e) => {
+    const geometry = geometryAtPointer(e.clientX, e.clientY);
+    if (geometry) showRingInfo(geometry);
+  });
+
+  document.addEventListener("pointerdown", (e) => {
+    if (tooltip.hidden) return;
+    const target = e.target as Node;
+    if (canvas.contains(target) || yearList.contains(target)) return;
+    hideRingInfo();
+  });
+
+  /** Builds the keyboard-tabbable per-year buttons that mirror hover/tap ring info. */
+  const buildYearList = (rings: Ring[]) => {
+    yearList.innerHTML = "";
+    if (rings.length === 0) {
+      yearList.hidden = true;
+      return;
+    }
+
+    rings.forEach((ring, index) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "year-chip";
+      chip.textContent = String(ring.year);
+      chip.setAttribute("aria-label", formatRingSummary(ring));
+
+      const showThisRing = () => {
+        if (!lastRings) return;
+        const geometry = computeRingRadii(lastRings, canvas.width)[index];
+        if (geometry) showRingInfo(geometry);
+      };
+      chip.addEventListener("mouseenter", showThisRing);
+      chip.addEventListener("focus", showThisRing);
+      chip.addEventListener("mouseleave", hideRingInfo);
+      chip.addEventListener("blur", hideRingInfo);
+
+      yearList.appendChild(chip);
+    });
+    yearList.hidden = false;
+  };
 
   /**
    * Sizes the canvas element to its container at devicePixelRatio so the
@@ -118,6 +218,7 @@ export function mountApp(root: HTMLElement): void {
     }
 
     clearError();
+    hideRingInfo();
     button.disabled = true;
     setStatus(`Fetching ${ref.owner}/${ref.repo}…`);
 
@@ -137,6 +238,7 @@ export function mountApp(root: HTMLElement): void {
       rings = attachLanguageBands(rings, bandsByYear);
       lastRings = rings;
       placeholder.hidden = true;
+      buildYearList(rings);
 
       currentAnimation?.cancel();
       currentAnimation = animateRings(ctx, rings, canvas.width, {
