@@ -1,4 +1,5 @@
 import { createSfxPlayer } from "../audio/sfx";
+import { formatExportFilename } from "../export/filename";
 import { fetchCommitHistory, GitHubApiError, parseRepoInput } from "../github/client";
 import { sampleYearLanguages } from "../github/sampleLanguages";
 import type { Animation } from "../render/animate";
@@ -67,10 +68,12 @@ export function mountApp(root: HTMLElement): void {
   const placeholder = root.querySelector<HTMLElement>("#stage-placeholder")!;
   const yearList = root.querySelector<HTMLElement>("#year-list")!;
   const tooltip = root.querySelector<HTMLElement>("#ring-tooltip")!;
+  const exportBtn = root.querySelector<HTMLButtonElement>("#export-btn")!;
   const ctx = canvas.getContext("2d")!;
 
   let currentAnimation: Animation | null = null;
   let lastRings: Ring[] | null = null;
+  let lastRef: { owner: string; repo: string } | null = null;
   const sfx = createSfxPlayer();
 
   const bgColor = () => getComputedStyle(document.documentElement).getPropertyValue("--surface-1");
@@ -85,6 +88,28 @@ export function mountApp(root: HTMLElement): void {
   muteButton.addEventListener("click", () => {
     sfx.toggleMute();
     syncMuteControl();
+  });
+
+  /** Enables the export button with its scale-in pop, restarting the animation if already visible. */
+  const enableExport = () => {
+    exportBtn.disabled = false;
+    exportBtn.classList.remove("pop-in");
+    void exportBtn.offsetWidth;
+    exportBtn.classList.add("pop-in");
+  };
+
+  const disableExport = () => {
+    exportBtn.disabled = true;
+    exportBtn.classList.remove("pop-in");
+  };
+
+  exportBtn.addEventListener("click", () => {
+    if (!lastRings || lastRings.length === 0 || !lastRef) return;
+    const filename = formatExportFilename(lastRef.owner, lastRef.repo);
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = filename;
+    link.click();
   });
 
   const accentColor = () => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
@@ -224,6 +249,7 @@ export function mountApp(root: HTMLElement): void {
     clearError();
     hideRingInfo();
     button.disabled = true;
+    disableExport();
     setStatus(`Fetching ${ref.owner}/${ref.repo}…`);
 
     try {
@@ -241,6 +267,7 @@ export function mountApp(root: HTMLElement): void {
       );
       rings = attachLanguageBands(rings, bandsByYear);
       lastRings = rings;
+      lastRef = ref;
       placeholder.hidden = true;
       buildYearList(rings);
 
@@ -251,6 +278,7 @@ export function mountApp(root: HTMLElement): void {
         reducedMotion: prefersReducedMotion(),
         onRingComplete: (_index, isLast) => (isLast ? sfx.chime() : sfx.tick()),
       });
+      if (rings.length > 0) currentAnimation.done.then(enableExport);
 
       setStatus(`${rings.length} ring${rings.length === 1 ? "" : "s"} grown from ${commits.length} commits`);
     } catch (err) {
