@@ -36,6 +36,24 @@ export class GitHubApiError extends Error {
 }
 
 /**
+ * Turns a 403 response's `X-RateLimit-Reset` header (unix seconds) into an
+ * actionable "try again in N minutes" clause. Falls back to a vaguer
+ * "shortly" when the header is missing or already in the past, so the
+ * message degrades gracefully rather than showing a negative/zero wait.
+ */
+function rateLimitMessage(res: { headers?: { get(name: string): string | null } }): string {
+  const resetHeader = res.headers?.get?.("x-ratelimit-reset");
+  const resetEpochSeconds = resetHeader ? Number(resetHeader) : NaN;
+  if (Number.isFinite(resetEpochSeconds)) {
+    const minutes = Math.ceil((resetEpochSeconds * 1000 - Date.now()) / 60000);
+    if (minutes > 0) {
+      return `GitHub API rate limit exceeded — try again in ${minutes} minute${minutes === 1 ? "" : "s"}`;
+    }
+  }
+  return "GitHub API rate limit exceeded — try again shortly";
+}
+
+/**
  * Fetches commit history for a repo, paginating the REST API until exhausted.
  * Unauthenticated requests are capped at 60/hr by GitHub, so callers should
  * surface GitHubApiError(403) as a rate-limit message rather than a crash.
@@ -59,7 +77,7 @@ export async function fetchCommitHistory(
         res.status === 404
           ? `Repo "${ref.owner}/${ref.repo}" not found`
           : res.status === 403
-            ? "GitHub API rate limit exceeded — try again shortly"
+            ? rateLimitMessage(res)
             : `GitHub API error (${res.status})`,
         res.status,
       );
