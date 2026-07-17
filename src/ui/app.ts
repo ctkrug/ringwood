@@ -12,8 +12,10 @@ import { aggregateLanguages, toBands } from "../rings/language";
 import { buildLegend } from "../rings/legend";
 import type { Ring } from "../rings/types";
 import { formatRingSummary } from "./ringStats";
+import { describeTreeState } from "./treeState";
 
 const RING_COLORS: [string, string] = ["#bb5a2c", "#4f6b3a"];
+const IDLE_PLACEHOLDER = "Paste a repo and grow its rings";
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -71,6 +73,7 @@ export function mountApp(root: HTMLElement): void {
   const legendList = root.querySelector<HTMLElement>("#legend-list")!;
   const tooltip = root.querySelector<HTMLElement>("#ring-tooltip")!;
   const exportBtn = root.querySelector<HTMLButtonElement>("#export-btn")!;
+  const treeNote = root.querySelector<HTMLElement>("#tree-note")!;
   const ctx = canvas.getContext("2d")!;
 
   let currentAnimation: Animation | null = null;
@@ -230,6 +233,15 @@ export function mountApp(root: HTMLElement): void {
     legendList.hidden = false;
   };
 
+  const showTreeNote = (message: string) => {
+    treeNote.textContent = message;
+    treeNote.hidden = false;
+  };
+
+  const hideTreeNote = () => {
+    treeNote.hidden = true;
+  };
+
   /**
    * Sizes the canvas element to its container at devicePixelRatio so the
    * tree stays crisp on retina displays, then redraws the last finished
@@ -293,9 +305,14 @@ export function mountApp(root: HTMLElement): void {
       rings = attachLanguageBands(rings, bandsByYear);
       lastRings = rings;
       lastRef = ref;
-      placeholder.hidden = true;
       buildYearList(rings);
       renderLegendList(rings);
+
+      const state = describeTreeState(rings.length);
+      placeholder.hidden = state.kind !== "empty";
+      placeholder.textContent = state.message ?? IDLE_PLACEHOLDER;
+      if (state.kind === "sapling") showTreeNote(state.message!);
+      else hideTreeNote();
 
       currentAnimation?.cancel();
       currentAnimation = animateRings(ctx, rings, canvas.width, {
@@ -311,7 +328,10 @@ export function mountApp(root: HTMLElement): void {
       const message = err instanceof GitHubApiError ? err.message : "Something went wrong fetching that repo";
       setStatus("");
       showError(message);
-      if (!lastRings) placeholder.hidden = false;
+      if (!lastRings) {
+        placeholder.textContent = IDLE_PLACEHOLDER;
+        placeholder.hidden = false;
+      }
     } finally {
       button.disabled = false;
     }
