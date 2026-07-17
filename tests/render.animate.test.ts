@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeRingProgress, easeOut, totalAnimationDuration } from "../src/render/animate";
+import { computeRingProgress, easeOut, ringsJustCompleted, totalAnimationDuration } from "../src/render/animate";
 
 describe("easeOut", () => {
   it("starts at 0 and ends at 1", () => {
@@ -57,5 +57,28 @@ describe("totalAnimationDuration", () => {
 
   it("is zero for no rings", () => {
     expect(totalAnimationDuration(0, 650)).toBe(0);
+  });
+});
+
+describe("ringsJustCompleted", () => {
+  it("reports a ring that reached full progress this frame", () => {
+    const completed = [false, false];
+    expect(ringsJustCompleted([1, 0.5], completed)).toEqual([0]);
+    expect(completed).toEqual([true, false]);
+  });
+
+  it("does not re-report a ring already marked complete", () => {
+    const completed = [true, false];
+    expect(ringsJustCompleted([1, 1], completed)).toEqual([1]);
+  });
+
+  it("returns an empty list when nothing has finished yet", () => {
+    const completed = [false, false];
+    expect(ringsJustCompleted([0.2, 0], completed)).toEqual([]);
+  });
+
+  it("reports multiple rings finishing in the same frame in order", () => {
+    const completed = [false, false, false];
+    expect(ringsJustCompleted([1, 1, 0.9], completed)).toEqual([0, 1]);
   });
 });
