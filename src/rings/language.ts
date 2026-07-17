@@ -140,3 +140,13 @@ export function toBands(counts: LanguageCount[]): LanguageBand[] {
     color: colorForLanguage(c.language),
   }));
 }
+
+/**
+ * Picks the largest-share band for tooltip/stats display. Ties fall to
+ * whichever appears first, matching the descending order aggregateLanguages
+ * already produces. Returns null for a ring with no bands attached yet.
+ */
+export function dominantLanguage(bands: LanguageBand[]): string | null {
+  if (bands.length === 0) return null;
+  return bands.reduce((best, band) => (band.share > best.share ? band : best), bands[0]).language;
+}
