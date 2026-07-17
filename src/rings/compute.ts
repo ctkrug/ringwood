@@ -1,3 +1,4 @@
+import type { LanguageBand } from "./language";
 import type { Ring, YearActivity } from "./types";
 
 /** A ring at the floor never disappears — a dormant year reads as a scar, not a gap. */
@@ -37,12 +38,47 @@ export function bucketCommitsByYear(dates: string[]): YearActivity[] {
 export function computeRings(activity: YearActivity[]): Ring[] {
   const maxCount = Math.max(0, ...activity.map((y) => y.commitCount));
   if (maxCount === 0) {
-    return activity.map((y) => ({ ...y, thickness: MIN_THICKNESS }));
+    return activity.map((y) => ({ ...y, thickness: MIN_THICKNESS, bands: [] }));
   }
 
   return activity.map((y) => {
     const normalized = Math.sqrt(y.commitCount / maxCount);
     const thickness = MIN_THICKNESS + normalized * (1 - MIN_THICKNESS);
-    return { ...y, thickness };
+    return { ...y, thickness, bands: [] };
   });
+}
+
+/** Neutral fallback for a year whose language sample came back empty (e.g. all-binary commits). */
+const UNKNOWN_BAND: LanguageBand[] = [{ language: "Unknown", share: 1, color: "#8a7a5c" }];
+
+/**
+ * Merges sampled per-year language bands into rings that already have their
+ * thickness computed. Kept separate from computeRings because band detection
+ * is async (network-sampled) while thickness is derived purely from counts.
+ */
+export function attachLanguageBands(rings: Ring[], bandsByYear: Map<number, LanguageBand[]>): Ring[] {
+  return rings.map((ring) => {
+    const bands = bandsByYear.get(ring.year);
+    return { ...ring, bands: bands && bands.length > 0 ? bands : UNKNOWN_BAND };
+  });
+}
+
+/**
+ * Groups commits (with sha + date) into per-calendar-year buckets, for
+ * feeding into per-year language sampling. Unlike bucketCommitsByYear this
+ * keeps the full commit records (not just counts) and only years that
+ * actually have commits — silent years have nothing to sample.
+ */
+export function groupCommitsByYear<T extends { date: string }>(commits: T[]): Map<number, T[]> {
+  const grouped = new Map<number, T[]>();
+  for (const commit of commits) {
+    const year = new Date(commit.date).getUTCFullYear();
+    const bucket = grouped.get(year);
+    if (bucket) {
+      bucket.push(commit);
+    } else {
+      grouped.set(year, [commit]);
+    }
+  }
+  return grouped;
 }
