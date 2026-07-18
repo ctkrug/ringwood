@@ -23,6 +23,28 @@ function resolveAudioContextCtor(): AudioContextCtor | undefined {
 }
 
 /**
+ * Some private-browsing modes and sandboxed iframes expose a storage object
+ * whose getItem/setItem throw a SecurityError on access rather than being
+ * undefined, so every touch of `storage` here is guarded — mute still works
+ * for the session, it just won't persist.
+ */
+function readMuted(storage: Pick<Storage, "getItem" | "setItem">): boolean {
+  try {
+    return storage.getItem(MUTE_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function writeMuted(storage: Pick<Storage, "getItem" | "setItem">, muted: boolean): void {
+  try {
+    storage.setItem(MUTE_STORAGE_KEY, String(muted));
+  } catch {
+    // storage inaccessible — nothing to degrade to, mute just won't persist
+  }
+}
+
+/**
  * Creates a WebAudio-synthesized SFX player: a soft tick per completed ring
  * and a brighter chime for the final one. The AudioContext is created lazily
  * on the first actual sound (a user gesture, per browser autoplay policy),
@@ -36,7 +58,7 @@ export function createSfxPlayer(
   storage: Pick<Storage, "getItem" | "setItem"> = typeof localStorage !== "undefined" ? localStorage : noopStorage,
 ): SfxPlayer {
   let ctx: AudioContext | null = null;
-  let muted = storage.getItem(MUTE_STORAGE_KEY) === "true";
+  let muted = readMuted(storage);
 
   function ensureContext(): AudioContext | null {
     if (!audioContextCtor) return null;
@@ -74,7 +96,7 @@ export function createSfxPlayer(
     },
     toggleMute(): boolean {
       muted = !muted;
-      storage.setItem(MUTE_STORAGE_KEY, String(muted));
+      writeMuted(storage, muted);
       return muted;
     },
     isMuted(): boolean {
