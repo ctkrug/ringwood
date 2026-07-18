@@ -1,82 +1,92 @@
 # Ringwood
 
-Paste any public GitHub repo and watch its commit history grow like a tree — one ring per
-year, ring thickness for shipping volume, color banding for which languages touched that year.
+**▶ Live demo: [apps.charliekrug.com/ringwood](https://apps.charliekrug.com/ringwood/)**
+
+[![CI](https://github.com/ctkrug/ringwood/actions/workflows/ci.yml/badge.svg)](https://github.com/ctkrug/ringwood/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+See any GitHub repo's history as growth rings. Paste a public repository, watch one ring grow
+for every year it was active, and export the finished trunk as a PNG.
 
 ![A grown Ringwood tree: twelve concentric rings in warm parchment, rust, and moss tones, with a per-year chip list and a ranked language legend beside it](docs/images/demo.png)
 
-**[torvalds/linux](https://github.com/torvalds/linux)** has thirty-plus rings. Thin, brittle
-years next to thick, vivid ones. Instantly readable at a glance, and no two repos ever grow
-the same tree.
+## Why rings
 
-## Why
+Every tool that visualizes a repository produces the same picture: a contribution heatmap, a
+commit-frequency chart, a grid of green squares. They are accurate and nobody ever posts them.
 
-Commit graphs and contribution heatmaps all look the same after a while — a grid of green
-squares that flattens a decade of work into noise. A tree doesn't do that. Growth rings are a
-natural language for "how much happened, and how it changed" that anyone can read without a
-legend, because dendrochronology already trained us to read them: wide ring, good year; narrow
-ring, lean year; a scar, a drought.
+Growth rings are a format people already read without a legend. Wide ring, good year. Thin
+ring, quiet year. A project that went dormant for two years and came back keeps those lean
+years as visible scars instead of dropping them off the chart. Dendrochronology solved this
+visual problem centuries ago, and commit history happens to fit the same shape.
 
-Ringwood takes a GitHub repo's real commit history and renders it as an actual cross-section —
-one ring per calendar year the repo was active, ring width mapped to that year's shipping
-volume, and color bands within each ring showing which languages were touched. The result is a
-single image built entirely from live data, not a template: paste a different repo, get a
-different tree.
+## What it does
 
-## How it works
+- **One ring per calendar year.** Ring width scales with that year's commit count against the
+  repo's own busiest year, so a tree reflects the project's shape rather than absolute volume.
+- **Color bands by language.** Each ring is banded by the languages its commits actually
+  touched, sampled from the files in those commits, with a ranked legend beside the tree.
+- **Grows in front of you.** Rings ease outward one year at a time, with a synthesized tick per
+  ring and a brighter chime on the last. Mute persists across reloads.
+- **Inspect any year.** Hover or tap a ring for its commit count and dominant language. A
+  tabbable list of year chips gives keyboard users the same stats.
+- **Export a PNG.** One button, named after the repo, for example
+  `torvalds-linux-ringwood.png`. The button turns on once the tree finishes growing.
+- **Honest failure states.** A missing repo says so. A rate limit says how many minutes are
+  left. A repo with no commits gets a designed empty state instead of a blank canvas.
 
-1. Paste a public `owner/repo` (or a GitHub URL).
-2. Ringwood pulls the repo's commit history via the GitHub REST API, entirely client-side —
-   no server, no stored credentials, no backend.
-3. Commits are bucketed by year and by the languages present in the files they touched.
-4. Each year becomes one ring: width scales with that year's commit volume relative to the
-   repo's own history, and the ring is banded by language share.
-5. The whole tree renders on a `<canvas>`, one ring growing outward at a time, ending in a
-   single shareable image.
+## Usage
 
-## What works today
+Open the [live demo](https://apps.charliekrug.com/ringwood/) and paste one of:
 
-- Paste-a-repo flow with inline validation and a designed error banner for GitHub 404s and
-  actionable ("try again in N minutes") 403 rate-limit responses.
-- Full paginated commit history fetch, bucketed into one ring per calendar year.
-- Year-by-year ring growth animation (staggered, eased outward), thickness driven by commit
-  volume, with `prefers-reduced-motion` support and clean cancellation on resubmit.
-- Language color banding per ring, sampled from each year's touched files.
-- Canvas scales to `devicePixelRatio` and redraws on resize.
-- Hover or tap a ring for a tooltip with that year's commit count and dominant language; a
-  tabbable year-chip list gives keyboard users the same stats without hovering.
-- Synth WebAudio tick per completed ring, a brighter chime on the last, and a mute toggle
-  whose state persists across reloads.
-- A language legend keyed to the repo's actual mix, ranked by share and reset on every new grow.
-- Export the finished tree as a PNG at canvas resolution, named after the repo
-  (e.g. `torvalds-linux-ringwood.png`); the button enables only once the tree finishes growing.
-- Designed empty/small-repo states: a zero-commit repo shows a "no commits yet" message instead
-  of a blank canvas, and a single-year repo keeps its one ring but adds a "still a sapling" note.
-- A warm glow pulses across the finished tree when its final ring completes growing.
+```
+torvalds/linux
+https://github.com/facebook/react
+https://github.com/rust-lang/rust/tree/master/library
+```
+
+Shorthand, full URLs, branch and file URLs, `.git` suffixes, and pasted query strings all
+resolve to the same repository. Press Grow, then Export PNG once the last ring lands.
+
+`torvalds/linux` is the one worth trying first. Thirty-plus rings, a trunk that visibly
+thickens through the 2010s, and a band mix that stays stubbornly C the whole way down.
+
+## Limits
+
+Ringwood talks to the public GitHub REST API from the browser with no token, which means:
+
+- **Public repositories only.** There is no auth step, so there is no way to reach a private repo.
+- **60 requests per hour per IP.** GitHub's anonymous ceiling. A large repo's full history takes
+  several paginated requests, so back-to-back runs on big repos can hit it. The error tells you
+  when it resets.
 
 ## Stack
 
-TypeScript + Canvas, built with [Vite](https://vitejs.dev/). Fully static and client-only —
-no backend, no build-time secrets, no database. Talks directly to the GitHub REST API from
-the browser.
+TypeScript and Canvas, built with [Vite](https://vitejs.dev/). Fully static and client-only:
+no backend, no build-time secrets, no database, nothing stored about what you paste.
 
-## Status
-
-All core stories are built: paste a repo, watch it grow, inspect any ring, export the
-result as a PNG. See
-[`docs/VISION.md`](docs/VISION.md) for the full design rationale,
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the pieces fit together, and
-[`docs/BACKLOG.md`](docs/BACKLOG.md) for the build plan.
+Ring thickness uses `sqrt(count / max)` rather than a linear scale. A ring's visible area grows
+faster than its thickness the further out it sits, so linear scaling makes recent years look
+much larger than they were.
 
 ## Development
 
 ```bash
 npm install
-npm run dev       # local dev server
-npm run build     # production build to dist/
-npm test          # unit tests
+npm run dev        # local dev server
+npm run build      # production build to site/
+npm test           # unit tests
+npm run typecheck  # tsc, no emit
 ```
+
+See [`docs/VISION.md`](docs/VISION.md) for the design rationale,
+[`docs/DESIGN.md`](docs/DESIGN.md) for the visual direction, and
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the modules fit together.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
+
+---
+
+More of Charlie's projects → [apps.charliekrug.com](https://apps.charliekrug.com)
