@@ -113,4 +113,9 @@ rather than an error.
 - `npm run dev` — Vite dev server.
 - `npm test` — Vitest (all logic modules are pure functions or take injectable network
   dependencies, so tests run without hitting the real GitHub API).
+- `npm test -- --coverage` — v8 coverage report (`@vitest/coverage-v8`); core logic modules
+  (`rings/`, `render/`, `github/client.ts`, `export/`, `audio/`) run 99-100%. `ui/app.ts` is DOM
+  wiring rather than algorithmic logic and is covered separately via `tests/ui.app.test.ts`,
+  which mounts the real app in `happy-dom` (see that file's `stubCanvasContext` helper for how
+  canvas calls are faked without a native canvas binding).
 - `npm run typecheck` / `npm run build` — `tsc --noEmit` then `vite build` to `dist/`.
