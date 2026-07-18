@@ -28,6 +28,18 @@ describe("findRingAtDistance", () => {
     expect(result).toBeNull();
   });
 
+  it("includes a distance exactly at a ring's outer radius (the boundary belongs to it)", () => {
+    const geometries = computeRingRadii(rings, 600);
+    const result = findRingAtDistance(geometries, geometries[2].outerRadius);
+    expect(result?.ring.year).toBe(2020);
+  });
+
+  it("resolves a shared boundary (one ring's outer edge == the next ring's inner edge) to the inner ring", () => {
+    const geometries = computeRingRadii(rings, 600);
+    const result = findRingAtDistance(geometries, geometries[1].innerRadius);
+    expect(result?.ring.year).toBe(2018);
+  });
+
   it("returns null for an empty ring list", () => {
     expect(findRingAtDistance([], 10)).toBeNull();
   });
