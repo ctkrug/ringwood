@@ -169,6 +169,68 @@ describe("fetchCommitHistory", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
     await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(/GitHub API error \(500\)/);
   });
+
+  it("skips malformed entries instead of losing the whole page to one of them", async () => {
+    // One unusable entry among 100 good ones must not cost the caller the
+    // other 99: the existing `if (!date) continue` already implies per-entry
+    // tolerance, but it reads through `item.commit` without checking it.
+    const batch = [
+      { sha: "good-1", commit: { author: { date: "2020-01-01T00:00:00Z" } } },
+      { sha: "no-commit-object" },
+      { sha: "null-commit", commit: null },
+      { sha: "null-author", commit: { author: null } },
+      null,
+      "not-an-object",
+      { sha: "good-2", commit: { author: { date: "2021-01-01T00:00:00Z" } } },
+    ];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => batch }));
+
+    const result = await fetchCommitHistory({ owner: "o", repo: "r" });
+
+    expect(result.commits.map((c) => c.sha)).toEqual(["good-1", "good-2"]);
+    expect(result.truncated).toBe(false);
+  });
+
+  it("reports an unreadable body rather than surfacing a raw parse error", async () => {
+    // A captive portal or corporate proxy answers 200 with an HTML login page,
+    // so res.json() rejects. Without a guard that SyntaxError escapes as-is and
+    // the UI shows its generic fallback instead of something actionable.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError("Unexpected token < in JSON at position 0");
+        },
+      }),
+    );
+    await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(GitHubApiError);
+    await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(/unreadable response/);
+  });
+
+  it("treats a non-array payload as an unreadable response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ message: "?" }) }));
+    await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(/unreadable response/);
+  });
+
+  it("keeps already-fetched commits when a later page comes back unreadable", async () => {
+    // Same reasoning as the 403 case: a partial, most-recent tree beats nothing.
+    const page1 = Array.from({ length: 100 }, (_, i) => ({
+      sha: `p1-${i}`,
+      commit: { author: { date: "2020-01-01T00:00:00Z" } },
+    }));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => page1 })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => "nonsense" });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchCommitHistory({ owner: "o", repo: "r" });
+
+    expect(result.commits).toHaveLength(100);
+    expect(result.truncated).toBe(true);
+  });
 });
 
 describe("fetchCommitFiles", () => {
