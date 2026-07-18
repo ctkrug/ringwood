@@ -161,6 +161,6 @@ export async function fetchCommitFiles(ref: RepoRef, sha: string): Promise<strin
 
   if (!res.ok) return [];
 
-  const data = (await res.json()) as { files?: Array<{ filename: string }> };
-  return (data.files ?? []).map((f) => f.filename);
+  const data = (await res.json()) as { files?: Array<{ filename?: unknown }> };
+  return (data.files ?? []).map((f) => f.filename).filter((f): f is string => typeof f === "string");
 }
