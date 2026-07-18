@@ -3,6 +3,8 @@
 Paste any public GitHub repo and watch its commit history grow like a tree — one ring per
 year, ring thickness for shipping volume, color banding for which languages touched that year.
 
+![A grown Ringwood tree: twelve concentric rings in warm parchment, rust, and moss tones, with a per-year chip list and a ranked language legend beside it](docs/images/demo.png)
+
 **[torvalds/linux](https://github.com/torvalds/linux)** has thirty-plus rings. Thin, brittle
 years next to thick, vivid ones. Instantly readable at a glance, and no two repos ever grow
 the same tree.
