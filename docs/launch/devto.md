@@ -69,8 +69,11 @@ single afternoon spent in an unusual language, but it reliably catches "this was
 Python crept in," which is the thing you actually want to see.
 
 The rate limit still exists, so the UI reads `X-RateLimit-Reset` off the 403 and tells you how
-many minutes are left rather than failing silently. Being honest about a limit costs about ten
-lines and is the difference between a broken toy and a working one.
+many minutes are left rather than failing silently. The version I shipped first also threw away
+every page it had already fetched when the limit hit mid-pagination, which was the worst
+possible answer: it had 4,000 commits in hand and rendered nothing. Now it keeps them and draws
+a partial trunk from the most recent history, and says so. Being honest about a limit costs
+about ten lines and is the difference between a broken toy and a working one.
 
 ## What I would do differently
 
