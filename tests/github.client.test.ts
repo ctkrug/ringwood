@@ -56,8 +56,31 @@ describe("parseRepoInput", () => {
     expect(parseRepoInput("torvalds/linux/")).toEqual({ owner: "torvalds", repo: "linux" });
   });
 
-  it("accepts unicode owner/repo segments without crashing", () => {
-    expect(parseRepoInput("🐙/emoji-repo")).toEqual({ owner: "🐙", repo: "emoji-repo" });
+  it("rejects segments that cannot be GitHub names", () => {
+    // GitHub owners are alphanumeric + hyphen; repos add dot and underscore.
+    // Anything else is a typo or a paste accident, and should fail inline
+    // rather than becoming a doomed API request.
+    expect(parseRepoInput("🐙/emoji-repo")).toBeNull();
+    expect(parseRepoInput("<script>alert(1)</script>")).toBeNull();
+    expect(parseRepoInput("owner name/repo")).toBeNull();
+    expect(parseRepoInput("-leading/repo")).toBeNull();
+    expect(parseRepoInput("trailing-/repo")).toBeNull();
+    expect(parseRepoInput("owner./repo")).toBeNull();
+    expect(parseRepoInput(`${"a".repeat(40)}/repo`)).toBeNull();
+    expect(parseRepoInput(`owner/${"b".repeat(101)}`)).toBeNull();
+  });
+
+  it("rejects dot segments that would escape the API path", () => {
+    // "../x" interpolated into /repos/{owner}/{repo}/commits collapses to a
+    // different endpoint once the browser normalizes the URL.
+    expect(parseRepoInput("../x")).toBeNull();
+    expect(parseRepoInput("owner/..")).toBeNull();
+    expect(parseRepoInput("owner/.")).toBeNull();
+  });
+
+  it("keeps the dots, underscores, and hyphens GitHub actually allows", () => {
+    expect(parseRepoInput("my-org/my_repo.js")).toEqual({ owner: "my-org", repo: "my_repo.js" });
+    expect(parseRepoInput("a/b")).toEqual({ owner: "a", repo: "b" });
   });
 });
 
