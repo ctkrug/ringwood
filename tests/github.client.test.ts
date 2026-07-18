@@ -164,6 +164,11 @@ describe("fetchCommitHistory", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
     await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(/not found/);
   });
+
+  it("throws a generic GitHubApiError for other non-OK statuses (e.g. a 500)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(/GitHub API error \(500\)/);
+  });
 });
 
 describe("fetchCommitFiles", () => {
