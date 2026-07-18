@@ -7,11 +7,17 @@ const API_ROOT = "https://api.github.com";
  * normalizes it to a RepoRef, or null if it doesn't look like either shape.
  */
 export function parseRepoInput(input: string): RepoRef | null {
-  const trimmed = input.trim().replace(/\.git$/, "");
+  const trimmed = input
+    .trim()
+    .split(/[?#]/)[0]
+    .replace(/\/+$/, "")
+    .replace(/\.git$/, "");
   if (!trimmed) return null;
 
+  // Matches a repo URL even with extra path segments (branch/file view,
+  // e.g. "/tree/main" or "/blob/main/README.md") pasted from the browser.
   const urlMatch = trimmed.match(
-    /^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\/([^/\s]+)\/?$/i,
+    /^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\/([^/\s]+)(?:\/.*)?$/i,
   );
   if (urlMatch) {
     return { owner: urlMatch[1], repo: urlMatch[2] };
