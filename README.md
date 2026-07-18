@@ -8,8 +8,6 @@
 See any GitHub repo's history as growth rings. Paste a public repository, watch one ring grow
 for every year it was active, and export the finished trunk as a PNG.
 
-![A grown Ringwood tree: twelve concentric rings in warm parchment, rust, and moss tones, with a per-year chip list and a ranked language legend beside it](docs/images/demo.png)
-
 ## Why rings
 
 Every tool that visualizes a repository produces the same picture: a contribution heatmap, a
@@ -40,25 +38,27 @@ visual problem centuries ago, and commit history happens to fit the same shape.
 Open the [live demo](https://apps.charliekrug.com/ringwood/) and paste one of:
 
 ```
-torvalds/linux
-https://github.com/facebook/react
-https://github.com/rust-lang/rust/tree/master/library
+sveltejs/svelte
+https://github.com/rust-lang/mdBook
+https://github.com/tailwindlabs/tailwindcss/tree/main/packages
 ```
 
 Shorthand, full URLs, branch and file URLs, `.git` suffixes, and pasted query strings all
 resolve to the same repository. Press Grow, then Export PNG once the last ring lands.
 
-`torvalds/linux` is the one worth trying first. Thirty-plus rings, a trunk that visibly
-thickens through the 2010s, and a band mix that stays stubbornly C the whole way down.
+Your own oldest side project is usually the one worth trying first. The shape of it is rarely
+what you remember.
 
 ## Limits
 
 Ringwood talks to the public GitHub REST API from the browser with no token, which means:
 
 - **Public repositories only.** There is no auth step, so there is no way to reach a private repo.
-- **60 requests per hour per IP.** GitHub's anonymous ceiling. A large repo's full history takes
-  several paginated requests, so back-to-back runs on big repos can hit it. The error tells you
-  when it resets.
+- **60 requests per hour per IP.** GitHub's anonymous ceiling, and the real constraint on what
+  Ringwood can draw. History is fetched 100 commits per request, so one hour of quota covers
+  roughly 6,000 commits. Repositories past that size cannot currently be rendered: the fetch
+  stops at the limit and reports how many minutes remain rather than drawing a partial tree.
+  `torvalds/linux`, at over 1.4 million commits, would need about 14,600 requests.
 
 ## Stack
 
