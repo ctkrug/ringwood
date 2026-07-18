@@ -80,6 +80,7 @@ export function mountApp(root: HTMLElement): void {
   let currentAnimation: Animation | null = null;
   let lastRings: Ring[] | null = null;
   let lastRef: { owner: string; repo: string } | null = null;
+  let isGrowing = false;
   const sfx = createSfxPlayer();
 
   const bgColor = () => getComputedStyle(document.documentElement).getPropertyValue("--surface-1");
@@ -285,12 +286,15 @@ export function mountApp(root: HTMLElement): void {
   };
 
   const grow = async () => {
+    if (isGrowing) return;
+
     const ref = parseRepoInput(input.value);
     if (!ref) {
       showError("Enter a repo as owner/repo or a github.com URL");
       return;
     }
 
+    isGrowing = true;
     clearError();
     hideRingInfo();
     button.disabled = true;
@@ -348,6 +352,7 @@ export function mountApp(root: HTMLElement): void {
         placeholder.hidden = false;
       }
     } finally {
+      isGrowing = false;
       button.disabled = false;
     }
   };
