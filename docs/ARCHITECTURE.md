@@ -118,4 +118,4 @@ rather than an error.
   wiring rather than algorithmic logic and is covered separately via `tests/ui.app.test.ts`,
   which mounts the real app in `happy-dom` (see that file's `stubCanvasContext` helper for how
   canvas calls are faked without a native canvas binding).
-- `npm run typecheck` / `npm run build` — `tsc --noEmit` then `vite build` to `dist/`.
+- `npm run typecheck` / `npm run build` — `tsc --noEmit` then `vite build` to `site/`, the tracked deploy artifact.

@@ -1,8 +1,7 @@
 # dependencies
 node_modules/
 
-# build output
-dist/
+# build output (site/ is the tracked deploy artifact)
 dist-ssr/
 
 # env
