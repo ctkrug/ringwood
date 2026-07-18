@@ -48,7 +48,11 @@ fetch.
 - **`github/client.ts`** — `parseRepoInput` (owner/repo or URL → `RepoRef`), `fetchCommitHistory`
   (paginated commit list; throws `GitHubApiError` on 404/other, and on 403 with nothing fetched
   yet, but returns `{ commits, truncated: true }` on a 403 after earlier pages already
-  succeeded — a large repo renders a partial, most-recent-first tree instead of nothing),
+  succeeded — a large repo renders a partial, most-recent-first tree instead of nothing).
+  Response bodies are treated as untrusted: each list entry's shape is checked before it's read
+  so one malformed commit is skipped rather than costing the whole page, and a body that can't
+  be parsed or isn't an array (a captive portal answering 200 with HTML) takes the same
+  partial-tree path as a 403 instead of escaping as a raw `SyntaxError`. Also exports
   `fetchCommitFiles` (single commit's touched files; degrades to `[]` on failure and filters out
   any entry with a non-string `filename` since it's an enhancement, not the core render).
 - **`github/sampleLanguages.ts`** — `pickSample` (evenly-spaced subset, always includes first/
