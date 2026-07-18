@@ -26,6 +26,39 @@ describe("parseRepoInput", () => {
     expect(parseRepoInput("not a repo")).toBeNull();
     expect(parseRepoInput("just-one-segment")).toBeNull();
   });
+
+  it("strips a query string pasted from the address bar instead of folding it into the repo name", () => {
+    expect(parseRepoInput("https://github.com/torvalds/linux?tab=readme-ov-file")).toEqual({
+      owner: "torvalds",
+      repo: "linux",
+    });
+  });
+
+  it("strips a #fragment pasted from the address bar instead of folding it into the repo name", () => {
+    expect(parseRepoInput("https://github.com/torvalds/linux#readme")).toEqual({
+      owner: "torvalds",
+      repo: "linux",
+    });
+  });
+
+  it("parses a URL with extra path segments (branch/file view) down to owner/repo", () => {
+    expect(parseRepoInput("https://github.com/torvalds/linux/tree/master")).toEqual({
+      owner: "torvalds",
+      repo: "linux",
+    });
+    expect(parseRepoInput("https://github.com/torvalds/linux/blob/master/README.md")).toEqual({
+      owner: "torvalds",
+      repo: "linux",
+    });
+  });
+
+  it("tolerates a trailing slash on shorthand input", () => {
+    expect(parseRepoInput("torvalds/linux/")).toEqual({ owner: "torvalds", repo: "linux" });
+  });
+
+  it("accepts unicode owner/repo segments without crashing", () => {
+    expect(parseRepoInput("🐙/emoji-repo")).toEqual({ owner: "🐙", repo: "emoji-repo" });
+  });
 });
 
 describe("fetchCommitHistory", () => {
