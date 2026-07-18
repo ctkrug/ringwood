@@ -2,9 +2,25 @@ import type { CommitSummary, RepoRef } from "./types";
 
 const API_ROOT = "https://api.github.com";
 
+// GitHub's own naming rules: owners are alphanumeric plus interior hyphens
+// (max 39 chars), repos also allow dots and underscores (max 100).
+const OWNER_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+const REPO_PATTERN = /^[A-Za-z0-9._-]{1,100}$/;
+
 /**
- * Accepts "owner/repo", a full github.com URL, or a bare "owner repo" pair and
- * normalizes it to a RepoRef, or null if it doesn't look like either shape.
+ * Rejects segments GitHub could never have issued. Beyond catching typos at
+ * the input instead of after a doomed round-trip, this keeps "." and ".."
+ * out of the REST path: `/repos/../x/commits` would otherwise be normalized
+ * by the browser into a request against an entirely different endpoint.
+ */
+function isValidRef(owner: string, repo: string): boolean {
+  if (repo === "." || repo === "..") return false;
+  return OWNER_PATTERN.test(owner) && REPO_PATTERN.test(repo);
+}
+
+/**
+ * Accepts "owner/repo" or a full github.com URL and normalizes it to a
+ * RepoRef, or null if it doesn't look like either shape.
  */
 export function parseRepoInput(input: string): RepoRef | null {
   const trimmed = input
@@ -19,12 +35,12 @@ export function parseRepoInput(input: string): RepoRef | null {
   const urlMatch = trimmed.match(
     /^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\/([^/\s]+)(?:\/.*)?$/i,
   );
-  if (urlMatch) {
+  if (urlMatch && isValidRef(urlMatch[1], urlMatch[2])) {
     return { owner: urlMatch[1], repo: urlMatch[2] };
   }
 
   const shorthandMatch = trimmed.match(/^([^/\s]+)\/([^/\s]+)$/);
-  if (shorthandMatch) {
+  if (shorthandMatch && isValidRef(shorthandMatch[1], shorthandMatch[2])) {
     return { owner: shorthandMatch[1], repo: shorthandMatch[2] };
   }
 
