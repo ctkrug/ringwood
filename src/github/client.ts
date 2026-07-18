@@ -75,15 +75,27 @@ function rateLimitMessage(res: { headers?: { get(name: string): string | null } 
   return "GitHub API rate limit exceeded — try again shortly";
 }
 
+export interface CommitHistoryResult {
+  commits: CommitSummary[];
+  /**
+   * True when pagination stopped early because GitHub rate-limited the
+   * request, rather than because the repo's history was exhausted — the
+   * caller has a real (but partial, most-recent-first) tree to render.
+   */
+  truncated: boolean;
+}
+
 /**
  * Fetches commit history for a repo, paginating the REST API until exhausted.
- * Unauthenticated requests are capped at 60/hr by GitHub, so callers should
- * surface GitHubApiError(403) as a rate-limit message rather than a crash.
+ * Unauthenticated requests are capped at 60/hr by GitHub. A 403 on the first
+ * page (nothing fetched yet) throws, since there is nothing to render. A 403
+ * after earlier pages already succeeded returns those commits with
+ * `truncated: true` instead of discarding a partial tree's worth of work.
  */
 export async function fetchCommitHistory(
   ref: RepoRef,
   onPage?: (page: number) => void,
-): Promise<CommitSummary[]> {
+): Promise<CommitHistoryResult> {
   const commits: CommitSummary[] = [];
   let page = 1;
   const perPage = 100;
@@ -95,6 +107,9 @@ export async function fetchCommitHistory(
     });
 
     if (!res.ok) {
+      if (res.status === 403 && commits.length > 0) {
+        return { commits, truncated: true };
+      }
       throw new GitHubApiError(
         res.status === 404
           ? `Repo "${ref.owner}/${ref.repo}" not found`
@@ -129,7 +144,7 @@ export async function fetchCommitHistory(
     page += 1;
   }
 
-  return commits;
+  return { commits, truncated: false };
 }
 
 /**
