@@ -345,8 +345,10 @@ h2 {
   .tree-stage {
     order: -1;
     max-width: none;
-    aspect-ratio: auto;
-    height: 60vh;
+    /* Square, capped by whichever runs out first — 60vh of height or the
+       viewport's own width — so the box is never taller than its content
+       (resizeCanvas squares the canvas the same way, via clientWidth/Height). */
+    width: min(60vh, 100%);
   }
 }
 
