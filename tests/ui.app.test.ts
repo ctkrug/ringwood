@@ -91,7 +91,7 @@ describe("mountApp grow flow", () => {
     const chips = root.querySelectorAll(".year-chip");
     expect([...chips].map((c) => c.textContent)).toEqual(["2021", "2022"]);
     expect(root.querySelector("#status-msg")!.textContent).toContain("2 rings");
-    expect(root.querySelector("#legend-list")!.hidden).toBe(false);
+    expect(root.querySelector<HTMLElement>("#legend-list")!.hidden).toBe(false);
   });
 
   it("enables the export button only once the tree has finished growing", async () => {
@@ -139,7 +139,7 @@ describe("mountApp grow flow", () => {
 
     const placeholder = root.querySelector<HTMLElement>("#stage-placeholder")!;
     expect(placeholder.hidden).toBe(false);
-    expect(root.querySelector("#year-list")!.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>("#year-list")!.hidden).toBe(true);
   });
 
   it("toggles the mute control's label and pressed state", () => {
