@@ -191,4 +191,18 @@ describe("fetchCommitFiles", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     expect(await fetchCommitFiles({ owner: "o", repo: "r" }, "sha1")).toEqual([]);
   });
+
+  it("drops entries with a missing or malformed filename instead of passing them through", async () => {
+    // A file-list entry without a usable filename would otherwise crash
+    // detectLanguage downstream and take out the whole render, contradicting
+    // this function's own "degrades gracefully" contract.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ files: [{ filename: "a.ts" }, {}, { filename: null }, { filename: "b.py" }] }),
+      }),
+    );
+    expect(await fetchCommitFiles({ owner: "o", repo: "r" }, "sha1")).toEqual(["a.ts", "b.py"]);
+  });
 });
