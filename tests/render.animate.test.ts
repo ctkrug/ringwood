@@ -1,5 +1,53 @@
-import { describe, expect, it } from "vitest";
-import { computeRingProgress, easeOut, ringsJustCompleted, totalAnimationDuration } from "../src/render/animate";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  animateRings,
+  computeRingProgress,
+  easeOut,
+  ringsJustCompleted,
+  totalAnimationDuration,
+} from "../src/render/animate";
+import type { Ring } from "../src/rings/types";
+
+function createFakeCtx() {
+  return {
+    fillStyle: "",
+    clearRect: () => {},
+    fillRect: () => {},
+    beginPath: () => {},
+    moveTo: () => {},
+    arc: () => {},
+    closePath: () => {},
+    fill: () => {},
+  } as unknown as CanvasRenderingContext2D;
+}
+
+/** Stubs requestAnimationFrame with a manually-advanced fake clock so the rAF loop can be driven deterministically. */
+function stubRaf() {
+  let now = 0;
+  let pending: ((t: number) => void) | null = null;
+  vi.stubGlobal("requestAnimationFrame", (cb: (t: number) => void) => {
+    pending = cb;
+    return 1;
+  });
+  vi.stubGlobal("cancelAnimationFrame", () => {
+    pending = null;
+  });
+  vi.stubGlobal("performance", { now: () => now });
+  return {
+    advance(ms: number) {
+      now += ms;
+      const cb = pending;
+      pending = null;
+      cb?.(now);
+    },
+  };
+}
+
+const ringOptions = { bgColor: "#f2e6c9", ringColors: ["#bb5a2c", "#4f6b3a"] as [string, string] };
+
+function makeRing(year: number): Ring {
+  return { year, commitCount: 1, thickness: 1, bands: [] };
+}
 
 describe("easeOut", () => {
   it("starts at 0 and ends at 1", () => {
@@ -80,5 +128,68 @@ describe("ringsJustCompleted", () => {
   it("reports multiple rings finishing in the same frame in order", () => {
     const completed = [false, false, false];
     expect(ringsJustCompleted([1, 1, 0.9], completed)).toEqual([0, 1]);
+  });
+});
+
+describe("animateRings", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("paints the finished tree instantly and skips onRingComplete under reduced motion", () => {
+    const onRingComplete = vi.fn();
+    const animation = animateRings(createFakeCtx(), [makeRing(2020)], 600, {
+      ...ringOptions,
+      reducedMotion: true,
+      onRingComplete,
+    });
+
+    expect(onRingComplete).not.toHaveBeenCalled();
+    return animation.done.then(() => {
+      expect(onRingComplete).not.toHaveBeenCalled();
+    });
+  });
+
+  it("grows rings one at a time, firing onRingComplete once per ring with isLast on the final one", async () => {
+    const raf = stubRaf();
+    const onRingComplete = vi.fn();
+    const rings = [makeRing(2019), makeRing(2020)];
+    const animation = animateRings(createFakeCtx(), rings, 600, {
+      ...ringOptions,
+      ringDurationMs: 100,
+      onRingComplete,
+    });
+
+    raf.advance(50);
+    expect(onRingComplete).not.toHaveBeenCalled();
+
+    raf.advance(60);
+    expect(onRingComplete).toHaveBeenCalledWith(0, false);
+
+    raf.advance(100);
+    expect(onRingComplete).toHaveBeenCalledWith(1, true);
+    expect(onRingComplete).toHaveBeenCalledTimes(2);
+
+    await animation.done;
+  });
+
+  it("cancel() stops the loop before it reaches completion", () => {
+    const raf = stubRaf();
+    const onRingComplete = vi.fn();
+    const animation = animateRings(createFakeCtx(), [makeRing(2020)], 600, {
+      ...ringOptions,
+      ringDurationMs: 100,
+      onRingComplete,
+    });
+
+    animation.cancel();
+    raf.advance(200);
+
+    expect(onRingComplete).not.toHaveBeenCalled();
+  });
+
+  it("resolves done immediately for an empty ring list", async () => {
+    const animation = animateRings(createFakeCtx(), [], 600, ringOptions);
+    await expect(animation.done).resolves.toBeUndefined();
   });
 });
