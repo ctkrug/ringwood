@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { coverageConfigDefaults } from "vitest/config";
 
 // Relative base so the built site works when served from any subpath
 // (e.g. apps.charliekrug.com/ringwood), not just the domain root.
@@ -12,5 +13,11 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    coverage: {
+      // site/ is the committed build artifact (see build.outDir above), not
+      // source — scanning it as 0%-covered "code" skews the real number.
+      // Extends (not replaces) vitest's own default exclusions.
+      exclude: [...coverageConfigDefaults.exclude, "site/**"],
+    },
   },
 });
