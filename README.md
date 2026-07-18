@@ -10,7 +10,7 @@ for every year it was active, and export the finished trunk as a PNG.
 
 ![Ringwood rendering davidbau/seedrandom as seven growth rings, color-banded by language](docs/images/demo.png)
 
-*[`davidbau/seedrandom`](https://github.com/davidbau/seedrandom) — 161 commits across seven
+*[`davidbau/seedrandom`](https://github.com/davidbau/seedrandom): 161 commits across seven
 years, JavaScript-dominant with JSON, HTML, and Markdown bands.*
 
 ## Why rings
