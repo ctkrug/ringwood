@@ -55,10 +55,12 @@ Ringwood talks to the public GitHub REST API from the browser with no token, whi
 
 - **Public repositories only.** There is no auth step, so there is no way to reach a private repo.
 - **60 requests per hour per IP.** GitHub's anonymous ceiling, and the real constraint on what
-  Ringwood can draw. History is fetched 100 commits per request, so one hour of quota covers
-  roughly 6,000 commits. Repositories past that size cannot currently be rendered: the fetch
-  stops at the limit and reports how many minutes remain rather than drawing a partial tree.
-  `torvalds/linux`, at over 1.4 million commits, would need about 14,600 requests.
+  Ringwood can draw. History is fetched 100 commits per request (newest first), so one hour of
+  quota covers roughly 6,000 commits. A repository past that size still renders: the tree grows
+  from whichever recent commits the quota covered, and the status line says the limit was hit
+  so it's reading a partial, most-recent slice rather than the full history. `torvalds/linux`,
+  at over 1.4 million commits, would need about 14,600 requests, so its tree would only ever
+  show its most recent handful of months.
 
 ## Stack
 
