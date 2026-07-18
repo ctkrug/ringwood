@@ -99,4 +99,22 @@ describe("createSfxPlayer", () => {
     expect(player.toggleMute()).toBe(true);
     expect(player.toggleMute()).toBe(false);
   });
+
+  it("does not throw when storage access is blocked (e.g. private browsing)", () => {
+    const throwingStorage = {
+      getItem: () => {
+        throw new DOMException("blocked", "SecurityError");
+      },
+      setItem: () => {
+        throw new DOMException("blocked", "SecurityError");
+      },
+    };
+    expect(() =>
+      createSfxPlayer(FakeAudioContext as unknown as new () => AudioContext, throwingStorage),
+    ).not.toThrow();
+
+    const player = createSfxPlayer(FakeAudioContext as unknown as new () => AudioContext, throwingStorage);
+    expect(player.isMuted()).toBe(false);
+    expect(() => player.toggleMute()).not.toThrow();
+  });
 });
