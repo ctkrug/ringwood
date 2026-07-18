@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ringwood — GitHub repo visualizer that grows commit rings</title>
+    <meta
+      name="description"
+      content="Paste any public repo and watch its commit history grow into a tree's rings. A client-side GitHub repo visualizer with PNG export and no login."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ringwood — GitHub repo visualizer that grows commit rings" />
+    <meta
+      property="og:description"
+      content="Paste any public repo and watch its commit history grow into a tree's rings. A client-side GitHub repo visualizer with PNG export and no login."
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23f2e6c9'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%23bb5a2c' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='6.5' fill='none' stroke='%234f6b3a' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%232b2013'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="./assets/index-BWnOergA.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BuRrBB9u.css">
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <section class="about" aria-labelledby="about-heading">
+      <div class="about-inner">
+        <h2 id="about-heading">A GitHub repo visualizer that draws trees, not bar charts</h2>
+        <p>
+          Ringwood is a GitHub repo visualizer that reads a project's commit history and draws it as
+          the cross-section of a tree. Every calendar year the repo was active becomes one growth
+          ring. The ring's width comes from how many commits landed that year, scaled against the
+          repo's own busiest year, and the color bands inside it come from the languages those
+          commits actually touched. Paste a repo, watch the rings grow outward one year at a time,
+          and export the finished trunk as a PNG.
+        </p>
+        <p>
+          Most ways to visualize git history end up looking identical: a contribution heatmap, a
+          commit-frequency line chart, a wall of green squares. They are accurate and completely
+          forgettable. Growth rings are a format people already know how to read without a legend.
+          A wide ring was a good year. A thin one was a quiet year. A repo that went dormant for
+          two years and came back carries those lean years as visible scars instead of dropping
+          them from the chart.
+        </p>
+
+        <h3>How it reads a repository</h3>
+        <p>
+          Everything runs in your browser against the public GitHub REST API. Ringwood pages through
+          the repo's commits, buckets them by year, then samples a handful of commits from each year
+          to work out which file types were being touched. Ring thickness is scaled by the square
+          root of a year's commit share rather than linearly, because a ring's visible area grows
+          faster than its thickness the further out it sits, and linear scaling makes recent years
+          look far bigger than they were.
+        </p>
+
+        <h3>Questions</h3>
+        <dl class="faq">
+          <dt>What is a GitHub repo visualizer?</dt>
+          <dd>
+            Any tool that turns a repository's activity into a picture instead of a list of commits.
+            Most draw calendars or graphs. Ringwood draws a tree trunk, so the whole life of the
+            project reads as a single image you can post.
+          </dd>
+
+          <dt>How do I visualize git history for my own project?</dt>
+          <dd>
+            Paste <code>owner/repo</code> or the GitHub URL into the box above and press Grow. There
+            is no signup, no install, and no access token. If the repository is public, it works.
+          </dd>
+
+          <dt>Does this commit history visualization tool support private repos?</dt>
+          <dd>
+            No. Ringwood only makes anonymous requests, so it can reach public repositories only.
+            Nothing you paste leaves your browser except the API call to github.com.
+          </dd>
+
+          <dt>Why did it stop partway through a large repository?</dt>
+          <dd>
+            GitHub allows 60 anonymous API requests per hour per IP address, and a repo with decades
+            of history needs several pages. When you hit that ceiling Ringwood tells you how many
+            minutes remain until the limit resets.
+          </dd>
+
+          <dt>Which repositories are worth trying?</dt>
+          <dd>
+            <code>torvalds/linux</code> has more than thirty rings and a visibly thickening trunk.
+            <code>facebook/react</code> shows a language shift as the bands change color. Your own
+            side project from four years ago is usually the one that surprises you.
+          </dd>
+        </dl>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <p>
+        <a href="https://github.com/ctkrug/ringwood">Ringwood on GitHub</a>
+      </p>
+      <p class="portfolio-link">
+        More by Charlie Krug <a href="https://apps.charliekrug.com">apps.charliekrug.com</a>
+      </p>
+    </footer>
+
+  </body>
+</html>

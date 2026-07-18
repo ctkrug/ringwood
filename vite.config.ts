@@ -5,7 +5,10 @@ import { defineConfig } from "vite";
 export default defineConfig({
   base: "./",
   build: {
-    outDir: "dist",
+    // Committed as the deploy artifact: the host serves site/ verbatim from
+    // apps.charliekrug.com/ringwood, so the built output is tracked, not ignored.
+    outDir: "site",
+    emptyOutDir: true,
   },
   test: {
     environment: "node",
