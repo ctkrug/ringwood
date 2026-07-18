@@ -102,20 +102,41 @@ describe("fetchCommitHistory", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => page2 });
     vi.stubGlobal("fetch", fetchMock);
 
-    const commits = await fetchCommitHistory({ owner: "o", repo: "r" });
+    const result = await fetchCommitHistory({ owner: "o", repo: "r" });
 
-    expect(commits).toHaveLength(101);
+    expect(result.commits).toHaveLength(101);
+    expect(result.truncated).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("returns an empty list when the repo has zero commits", async () => {
+  it("returns an empty, non-truncated list when the repo has zero commits", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
-    expect(await fetchCommitHistory({ owner: "o", repo: "r" })).toEqual([]);
+    expect(await fetchCommitHistory({ owner: "o", repo: "r" })).toEqual({ commits: [], truncated: false });
   });
 
-  it("throws a GitHubApiError with a rate-limit message on 403", async () => {
+  it("throws a GitHubApiError with a rate-limit message on 403 with nothing fetched yet", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
     await expect(fetchCommitHistory({ owner: "o", repo: "r" })).rejects.toThrow(GitHubApiError);
+  });
+
+  it("returns the commits already fetched, marked truncated, when a 403 hits after earlier pages succeeded", async () => {
+    // Simulates a large repo burning its 60-req/hr unauthenticated quota partway through:
+    // the first page succeeds, the second is rate-limited. Losing the first page's commits
+    // to a thrown error would turn "you can render 6000 commits" into "you get nothing."
+    const page1 = Array.from({ length: 100 }, (_, i) => ({
+      sha: `p1-${i}`,
+      commit: { author: { date: "2020-01-01T00:00:00Z" } },
+    }));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => page1 })
+      .mockResolvedValueOnce({ ok: false, status: 403, headers: { get: () => null } });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchCommitHistory({ owner: "o", repo: "r" });
+
+    expect(result.commits).toHaveLength(100);
+    expect(result.truncated).toBe(true);
   });
 
   it("includes a minutes-until-reset clause when the reset header is present", async () => {
