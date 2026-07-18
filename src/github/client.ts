@@ -75,6 +75,15 @@ function rateLimitMessage(res: { headers?: { get(name: string): string | null } 
   return "GitHub API rate limit exceeded — try again shortly";
 }
 
+/**
+ * The subset of GitHub's commit-list entry Ringwood reads. Every level is
+ * optional because the shape is only as trustworthy as the response body.
+ */
+interface CommitListEntry {
+  sha?: unknown;
+  commit?: { author?: { date?: unknown } | null } | null;
+}
+
 export interface CommitHistoryResult {
   commits: CommitSummary[];
   /**
@@ -120,18 +129,26 @@ export async function fetchCommitHistory(
       );
     }
 
-    const batch = (await res.json()) as Array<{
-      sha: string;
-      commit: { author: { date: string } | null };
-    }>;
+    // A proxy or captive portal can answer 200 with an HTML login page, so the
+    // body may not parse at all. Treated like the 403 above: keep a partial
+    // tree if earlier pages succeeded, otherwise report it as an API error
+    // rather than letting a raw SyntaxError reach the UI's generic fallback.
+    const payload = await res.json().catch(() => null);
+    if (!Array.isArray(payload)) {
+      if (commits.length > 0) return { commits, truncated: true };
+      throw new GitHubApiError("GitHub returned an unreadable response", res.status);
+    }
 
-    if (batch.length === 0) break;
+    if (payload.length === 0) break;
 
-    for (const item of batch) {
-      const date = item.commit.author?.date;
-      if (!date) continue;
+    for (const item of payload as Array<CommitListEntry>) {
+      // Entry shapes are validated per item so one unusable commit costs its
+      // own ring's worth of data, not the other 99 on the page.
+      const date = item?.commit?.author?.date;
+      const sha = item?.sha;
+      if (typeof date !== "string" || typeof sha !== "string") continue;
       commits.push({
-        sha: item.sha,
+        sha,
         date,
         additions: null,
         deletions: null,
@@ -140,7 +157,7 @@ export async function fetchCommitHistory(
     }
 
     onPage?.(page);
-    if (batch.length < perPage) break;
+    if (payload.length < perPage) break;
     page += 1;
   }
 
