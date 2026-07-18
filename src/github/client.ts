@@ -147,13 +147,7 @@ export async function fetchCommitHistory(
       const date = item?.commit?.author?.date;
       const sha = item?.sha;
       if (typeof date !== "string" || typeof sha !== "string") continue;
-      commits.push({
-        sha,
-        date,
-        additions: null,
-        deletions: null,
-        languages: [],
-      });
+      commits.push({ sha, date });
     }
 
     onPage?.(page);
