@@ -302,7 +302,7 @@ export function mountApp(root: HTMLElement): void {
     setStatus(`Fetching ${ref.owner}/${ref.repo}…`);
 
     try {
-      const commits = await fetchCommitHistory(ref, (page) => {
+      const { commits, truncated } = await fetchCommitHistory(ref, (page) => {
         setStatus(`Fetching ${ref.owner}/${ref.repo}… page ${page}`);
       });
       const activity = bucketCommitsByYear(commits.map((c) => c.date));
@@ -342,7 +342,12 @@ export function mountApp(root: HTMLElement): void {
       });
       if (rings.length > 0) currentAnimation.done.then(enableExport);
 
-      setStatus(`${rings.length} ring${rings.length === 1 ? "" : "s"} grown from ${commits.length} commits`);
+      const grownMessage = `${rings.length} ring${rings.length === 1 ? "" : "s"} grown from ${commits.length} commits`;
+      setStatus(
+        truncated
+          ? `${grownMessage} — GitHub's rate limit was hit, so only the most recent commits are shown`
+          : grownMessage,
+      );
     } catch (err) {
       const message = err instanceof GitHubApiError ? err.message : "Something went wrong fetching that repo";
       setStatus("");
