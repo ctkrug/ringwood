@@ -46,9 +46,11 @@ fetch.
 ## Modules
 
 - **`github/client.ts`** — `parseRepoInput` (owner/repo or URL → `RepoRef`), `fetchCommitHistory`
-  (paginated commit list, throws `GitHubApiError` on 404/403/other), `fetchCommitFiles`
-  (single commit's touched files; degrades to `[]` on failure since it's an enhancement, not
-  the core render).
+  (paginated commit list; throws `GitHubApiError` on 404/other, and on 403 with nothing fetched
+  yet, but returns `{ commits, truncated: true }` on a 403 after earlier pages already
+  succeeded — a large repo renders a partial, most-recent-first tree instead of nothing),
+  `fetchCommitFiles` (single commit's touched files; degrades to `[]` on failure and filters out
+  any entry with a non-string `filename` since it's an enhancement, not the core render).
 - **`github/sampleLanguages.ts`** — `pickSample` (evenly-spaced subset, always includes first/
   last), `sampleYearLanguages` (bounds file-list fetches per year so a large repo's language
   pass doesn't exhaust GitHub's unauthenticated 60/hr rate limit).
@@ -102,11 +104,16 @@ fetch.
 GitHub's commit-list endpoint doesn't return per-commit file changes; only the single-commit
 endpoint does, and that's one API call per commit. A repo can have thousands of commits in a
 single year, so `sampleYearLanguages` samples a fixed number (default 5, evenly spaced) per
-year instead of fetching every commit's files. This keeps a large repo like `torvalds/linux`
-inside GitHub's unauthenticated rate limit (60 req/hr) at the cost of the language mix being
-an approximation rather than an exact per-commit tally. A year whose sample returns no
-recognized files (e.g. binary-only or a sparse repo) renders as a neutral "Unknown" band
-rather than an error.
+year instead of fetching every commit's files, trading an exact per-commit tally for an
+approximation that stays well inside GitHub's unauthenticated rate limit (60 req/hr). A year
+whose sample returns no recognized files (e.g. binary-only or a sparse repo) renders as a
+neutral "Unknown" band rather than an error.
+
+The pagination itself is the harder ceiling: commit history is fetched 100 per request, so one
+hour of quota covers ~6,000 commits regardless of sampling. A repo past that (`torvalds/linux`,
+at 1.4M+ commits, would need ~14,600 requests) still renders — `fetchCommitHistory` returns the
+commits already paginated with `truncated: true` rather than throwing away that work — but the
+tree only reflects its most recent slice of history, and `ui/app.ts` says so in the status line.
 
 ## Run / test
 
