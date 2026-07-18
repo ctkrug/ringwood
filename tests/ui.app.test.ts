@@ -120,6 +120,31 @@ describe("mountApp grow flow", () => {
     expect(root.querySelector("#status-msg")!.textContent).toBe("");
   });
 
+  it("renders a partial tree with a rate-limit note instead of an error when pagination is truncated", async () => {
+    const fullPage = Array.from({ length: 100 }, (_, i) => ({
+      sha: `s${i}`,
+      commit: { author: { date: "2022-04-01T00:00:00Z" } },
+    }));
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("/commits?")) {
+        // Precise page match: naively matching "page=1" as a substring also
+        // matches "per_page=100", looping this mock forever.
+        return /[?&]page=1(&|$)/.test(url)
+          ? { ok: true, json: async () => fullPage }
+          : { ok: false, status: 403, headers: { get: () => null } };
+      }
+      return { ok: true, json: async () => ({ files: [{ filename: "src/main.ts" }] }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const root = document.createElement("div");
+    mountApp(root);
+    await growAndSettle(root, "big/repo");
+
+    expect(root.querySelector<HTMLElement>("#error-banner")!.hidden).toBe(true);
+    expect(root.querySelector("#status-msg")!.textContent).toMatch(/rate limit/i);
+    expect(root.querySelectorAll(".year-chip")).toHaveLength(1);
+  });
+
   it("notes that a single-year repo is still a sapling", async () => {
     stubGitHub([{ sha: "a", date: "2024-01-01T00:00:00Z" }]);
     const root = document.createElement("div");
